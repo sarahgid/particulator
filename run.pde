@@ -17,6 +17,8 @@ class ROMSRun {
   float[][] mask_n0, mask_n1;
 
 
+  ROMSRun() {}
+
   ROMSRun(String basename, int ncn0, int ncn1) {
     // locate files and load timebase
     print("reading timebase");
@@ -121,7 +123,7 @@ class ROMSRun {
   }
      
   void advance() {
-    if (ncn_n1 < filenames.length-1) {
+    if (ncn_n1 < fileTimes.length-1) {
       U_n0 = U_n1;
       V_n0 = V_n1;
       W_n0 = W_n1;

@@ -10,21 +10,9 @@ float[] firstCol(float[][] A) {
 
 
 
-float[] zeros(int I) {
-  float[] a = new float[I];
-  for (int i=0; i<I; i++) a[i] = 0;
-  return a;
-}
-float[][] zeros(int J, int I) {
-  float[][] a = new float[J][I];
-  for (int j=0; j<J; j++) for (int i=0; i<I; i++) a[j][i] = 0;
-  return a;
-}
-float[][][] zeros(int K, int J, int I) {
-  float[][][] a = new float[K][J][I];
-  for (int k=0; k<K; k++) for (int j=0; j<J; j++) for (int i=0; i<I; i++) a[k][j][i] = 0;
-  return a;
-}
+float[] zeros(int I) {return arrayFill(I, 0);}
+float[][] zeros(int J, int I) {return arrayFill(J,I,0);}
+float[][][] zeros(int K, int J, int I) {return arrayFill(K,J,I,0);}
 
 float[] arrayFill(int I, float val) {
   float[] a = new float[I];

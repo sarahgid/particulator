@@ -15,22 +15,6 @@ void pugetSoundTest() {
 // ---------------------------------------------
 
 
-void returnMapTest() {
-  float lunarHour = 44712/12;
-  float internalTimestep = lunarHour / 20.;
-  ReturnMapMaker expt = new ReturnMapMaker("/Users/neil/pnwtox/psmid_jul8_18/", 1633, 1873, "/Users/neil/Desktop/jul8surface", 1);
-  float[] cslevels = {0};
-  int Nreps = 10;
-  for (int n=0; n<24/4; n++) {
-    println("map #" + n + "---------------");
-    expt.makeMap(expt.run.firstTime() + n*4*lunarHour, 4*lunarHour, cslevels, Nreps, internalTimestep, ""+n);
-  }
-}
-
-
-// ---------------------------------------------
-
-
 void ecohab5_returnMap() {
   float lunarHour = 44712/12;
   float internalTimestep = lunarHour / 5.;
@@ -63,24 +47,8 @@ void ecohab5_returnMap_daily() {
   }   
 }
 
-void ecohab5_backwardsReturnMap() {
-  float lunarHour = 44712/12;
-  float internalTimestep = -lunarHour / 5.;
-  ReturnMapMaker expt = new ReturnMapMaker("/Volumes/vindaloo3/salish_2005_1_summer/", 5800, 6202, "/Volumes/vindaloo3/ecohab5_maps/ecohab5back", 2);
-  expt.backwardsInTime = true;
-  expt.surfaceTrapped = true;
-  float[] cslevels = {0};
-  int Nreps = 1;
-  float startTime = expt.run.lastTime() - 14*24*lunarHour; // 14 tidal days, roughly Sep 3-17, 2005
-  for (int n=0; n<14*24/2; n++) {
-    println("map #" + n + "---------------");
-    expt.makeMap(startTime + (n+1)*2*lunarHour, -2*lunarHour, cslevels, Nreps, internalTimestep, ""+n);
-  }   
-}
-
 
 // ------------------------------------------------------------------------------------------------------------------------
-// callable from the command line -----------------------------------------------------------------------------------------
 
 
 void returnmaps2005(String runDir, int fileStart, int fileEnd, String outputDir) {
