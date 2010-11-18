@@ -41,23 +41,16 @@ class GETM_2DRun extends ROMSRun {
     Ubar_full = nc_read3D(nc,"u");
     Vbar_full = nc_read3D(nc,"v");
     zeta_full = nc_read3D(nc,"elev");
-    for (int n=0; n<fileTimes.length; n++) {
-      for (int j=0; j<J; j++) {
-        for (int i=0; i<I; i++) {
-//          if (Ubar_full[n][j][i] == -9999) Ubar_full[n][j][i] = 0;
-//          if (Vbar_full[n][j][i] == -9999) Vbar_full[n][j][i] = 0;
-        }
-      }
-    }
-    
-    // construct the mask
+
+    // construct the mask and eliminate bad velocity points
     mask_full = arrayFill(fileTimes.length, J, I, 1);
     for (int n=0; n<fileTimes.length; n++) {
       for (int j=0; j<J; j++) {
         for (int i=0; i<I; i++) {
-          if (zeta_full[n][j][i] == -10) {
+          if (Ubar_full[n][j][i] == -9999 || Vbar_full[n][j][i] == -9999 || zeta_full[n][j][i] == -9999) {
             mask_full[n][j][i] = 0;
-            zeta_full[n][j][i] = 0;
+            Ubar_full[n][j][i] = 0;
+            Vbar_full[n][j][i] = 0;
           }
         }
       }
