@@ -157,7 +157,6 @@ class ROMSRun {
   }
   
   
-  // variables on the 
   float H(int j, int i) {
     return H[j][i];
   }

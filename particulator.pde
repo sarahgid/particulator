@@ -38,7 +38,7 @@ void setup() {
     if (exptname.equals("riverYear")) riverYear(runDir, fileStart, fileEnd, outputDir);
     
   } else {
-    getmMap2D("/Users/neil/Desktop/run_1/model_output.2d.nc", "/Users/neil/Desktop/particles.1.nc");
+    getmMap2D_set("/Users/neil/Desktop/", 1, 1);
   }
   
   if (debug) println("elapsed time " + (millis()-tic)/1000. + " sec");

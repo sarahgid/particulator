@@ -4,9 +4,9 @@ class ParticleExpt {
   Particle[] particles;
   String ncname = "myexpt.nc";
   int saveInterval = 1;
+  int preallocSteps = 1;
   boolean saveFirstLastOnly = false;
   boolean autoSave = true; // the normal way of saving
-  boolean backwardsInTime = false;
   
   ParticleExpt() {}
   
@@ -69,13 +69,16 @@ class ParticleExpt {
     return values[i];
   }
   
-  void createNetcdf(String ncname) {
+  void createNetcdf(String ncname) {createNetcdf(ncname,1);}
+  
+  void createNetcdf(String ncname, int preallocSteps) {
+    if (debug) print("creating output file " + ncname + "...");
     // expects particles[] to be initialized already
     try {
       NetcdfFileWriteable nc = NetcdfFileWriteable.createNew(ncname, false);
       if (debug) print("creating " + nc.getLocation() + "...");
       ucar.nc2.Dimension particleDim = nc.addDimension("particle", particles.length, true, false, false);
-      ucar.nc2.Dimension stepDim = nc.addDimension("step", 1, true, true, false);
+      ucar.nc2.Dimension stepDim = nc.addDimension("step", preallocSteps, true, true, false);
       String[] ncvarnames = saveNames();
       for (int vi=0; vi<ncvarnames.length; vi++) {
         nc.addVariable(ncvarnames[vi], ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {stepDim, particleDim});
@@ -95,9 +98,8 @@ class ParticleExpt {
 
   
   void calcToTime(float tend) {
-    if (backwardsInTime) {
-      calcBackToTime(tend);
-    } else {
+    try {
+      NetcdfFileWriteable nc = NetcdfFileWriteable.openExisting(ncname, false);    
       tend = min(tend, run.lastTime());
       if (tend < run.firstTime()) return;
       float tpmin = Inf; // earliest current particle time
@@ -113,7 +115,7 @@ class ParticleExpt {
           while (P.t < min(tend, run.lastLoadedTime()) && P.active) { // ...integrate each particle to the end of the loaded frame (or tend, whichever comes first)
             P.takeStep();
             if (autoSave && P.step % saveInterval == 0) {
-              savePosition(P.step / saveInterval, m, P); // save to netcdf file, one particle at a time
+              savePosition(nc, P.step / saveInterval, m, P); // save to netcdf file, one particle at a time
             }
           }
         }
@@ -128,64 +130,41 @@ class ParticleExpt {
         println("tpmin = " + tpmin + " (" + (tpmin/86400-run.fileTimes[0]/86400) + " d)");
         run.advance();
       }
+      nc.close();
       if (debug) println("done");
+    } catch (IOException ioe) {
+      if (debug) print("trouble saving particles: " + ioe.toString());
     }
-  }
-  
-  
-  void calcBackToTime(float tend) {
-    tend = max(tend, run.firstTime());
-    if (tend > run.lastTime()) return;
-    float tpmax = -Inf; // latest current particle time
-    for (int m=0; m<particles.length; m++) if (particles[m].active) tpmax = max(tpmax, particles[m].t);
-    if (tpmax <= tend) return;
-    if (tpmax < run.firstLoadedTime() || tpmax > run.lastLoadedTime()) {
-      run.loadFramesAtTime(tpmax);
-    } 
-    boolean anyActive = true;
-    while (anyActive && tpmax > tend) { // until the whole integration is done...
-      for (int m=0; m<particles.length; m++) {
-        Particle P = particles[m];
-        while (P.t > max(tend, run.firstLoadedTime()) && P.active) { // ...integrate each particle to the end of the loaded frame (or tend, whichever comes first)
-          P.takeStep();
-          if (autoSave && P.step % saveInterval == 0) {
-            savePosition(P.step / saveInterval, m, P); // save to netcdf file, one particle at a time
-          }
-        }
-      }
-      // redetermine anyActive and tend, to decide whether to keep going
-      tpmax = -Inf;
-      for (int m=0; m<particles.length; m++) {
-        if (particles[m].active) {
-          tpmax = max(tpmax, particles[m].t);   
-          anyActive = true;
-        }
-      }   
-      println("tpmax = " + tpmax + " (" + (tpmax/86400-run.fileTimes[0]/86400) + " d)");
-      run.advanceBackwards();
-    }
-    if (debug) println("done");
   }
 
 
-  void savePosition(int row, int m, Particle P) {
+  void savePosition(NetcdfFileWriteable nc, int row, int m, Particle P) {
     int[] pos = {row, m};
     float[] values = saveValues(P);
     String[] names = saveNames();
     try {
-      NetcdfFileWriteable nc = NetcdfFileWriteable.openExisting(ncname, false);
       for (int i=0; i<values.length; i++) {
         ArrayFloat.D2 data = new ArrayFloat.D2(1,1);
         data.set(0,0,values[i]);
         nc.write(names[i], pos, data);  
       }
-      nc.close();
     } catch (IOException ioe) {
       if (debug) print("trouble saving particle " + m + " at step " + P.step + ": ");
       println(ioe.toString());
     } catch (InvalidRangeException ire) {
       if (debug) print("trouble saving particle " + m + " at step " + P.step + ": ");
       println(ire.toString());
+    }
+  }
+  
+  void savePosition(int row, int m, Particle P) {
+    try {
+      NetcdfFileWriteable nc = NetcdfFileWriteable.openExisting(ncname, false);
+      savePosition(nc, row, m, P);
+      nc.close();
+    } catch (IOException ioe) {
+      if (debug) print("trouble saving particle " + m + " at step " + P.step + ": ");
+      println(ioe.toString());
     }
   }
   
