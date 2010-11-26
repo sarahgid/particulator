@@ -7,6 +7,12 @@ class ParticleExpt {
   int preallocSteps = 1;
   boolean saveFirstLastOnly = false;
   boolean autoSave = true; // the normal way of saving
+  String[] saveNames = {"lon","lat","z","cs","t","H","mask"};
+  // the following variables are copied from the experiment in the Particle constructor
+  float dt = 400;
+  String[] tracerNames = new String[0];
+  String[] tracerInterpMode = new String[0];
+  float[] tracerInterpDepth = new float[0];
   
   ParticleExpt() {}
   
@@ -14,6 +20,26 @@ class ParticleExpt {
     run = new ROMSRun(basename, ncn0, ncn1);
   }
     
+  void addTracer(String name) {addTracer(name,"3D",0);}
+  void addTracer(String name, String interpMode, float interpDepth) {
+    tracerNames = (String[]) append(tracerNames, name);
+    tracerInterpMode = (String[]) append(tracerInterpMode, interpMode);
+    tracerInterpDepth = (float[]) append(tracerInterpDepth, interpDepth);
+    int ii = tracerNames.length-1;
+    boolean found = false;
+    for (int i=0; i<saveNames.length && !found; i++) found = saveNames[i].equals(tracerSaveName(ii));
+    if (!found) saveNames = (String[]) append(saveNames, tracerSaveName(ii));
+    run.tracerNames = tracerNames;
+    run.reload();
+  }
+  
+  String tracerSaveName(int i) {
+    String name = tracerNames[i];
+    if (tracerInterpMode[i] !="3D") name += "_" + tracerInterpMode[i] + "_" + tracerInterpDepth[i];
+    name = strrep(name,'.',"");
+    return name;
+  }
+
   void seedParticles(float[] lon0, float[] lat0, float[] cs0, float t0, int Nreps) {
     particles = new Particle[cs0.length * lat0.length * lon0.length * Nreps];
     int m=0;
@@ -54,21 +80,6 @@ class ParticleExpt {
     if (autoSave) createNetcdf(ncname);
   }
   
-  String[] saveNames() {
-//    return new String[] {"x","y","lon","lat","z","cs","t","u","v","w","wdiff","dksdz","H","zeta"};
-    return new String[] {"lon","lat","z","cs","t","H"};
-  }
-  
-  float[] saveValues(Particle P) {
-//    return new float[] {P.x, P.y, P.lon, P.lat, P.z, P.cs, P.t, P.u, P.v, P.w, P.wdiff, P.dksdz, P.H, P.zeta};
-    return new float[] {P.lon, P.lat, P.z, P.cs, P.t, P.H};
-  }
-  
-  float saveValues(Particle P, int i) {
-    float[] values = saveValues(P);
-    return values[i];
-  }
-  
   void createNetcdf(String ncname) {createNetcdf(ncname,1);}
   
   void createNetcdf(String ncname, int preallocSteps) {
@@ -79,9 +90,8 @@ class ParticleExpt {
       if (debug) print("creating " + nc.getLocation() + "...");
       ucar.nc2.Dimension particleDim = nc.addDimension("particle", particles.length, true, false, false);
       ucar.nc2.Dimension stepDim = nc.addDimension("step", preallocSteps, true, true, false);
-      String[] ncvarnames = saveNames();
-      for (int vi=0; vi<ncvarnames.length; vi++) {
-        nc.addVariable(ncvarnames[vi], ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {stepDim, particleDim});
+      for (int vi=0; vi<saveNames.length; vi++) {
+        nc.addVariable(saveNames[vi], ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {stepDim, particleDim});
       }
       nc.create();
       nc_close(nc);
@@ -103,7 +113,7 @@ class ParticleExpt {
       tend = min(tend, run.lastTime());
       if (tend < run.firstTime()) return;
       float tpmin = Inf; // earliest current particle time
-      for (int m=0; m<particles.length; m++) if (particles[m].active) tpmin = min(tpmin, particles[m].t);
+      for (int m=0; m<particles.length; m++) if (particles[m].active) tpmin = min(tpmin, particles[m].t());
       if (tpmin >= tend) return;
       if (tpmin < run.firstLoadedTime() || tpmin > run.lastLoadedTime()) {
         run.loadFramesAtTime(tpmin);
@@ -112,7 +122,7 @@ class ParticleExpt {
       while (anyActive && tpmin < tend) { // until the whole integration is done...
         for (int m=0; m<particles.length; m++) {
           Particle P = particles[m];
-          while (P.t < min(tend, run.lastLoadedTime()) && P.active) { // ...integrate each particle to the end of the loaded frame (or tend, whichever comes first)
+          while (P.t() < min(tend, run.lastLoadedTime()) && P.active) { // ...integrate each particle to the end of the loaded frame (or tend, whichever comes first)
             P.takeStep();
             if (autoSave && P.step % saveInterval == 0) {
               savePosition(nc, P.step / saveInterval, m, P); // save to netcdf file, one particle at a time
@@ -123,7 +133,7 @@ class ParticleExpt {
         tpmin = Inf;
         for (int m=0; m<particles.length; m++) {
           if (particles[m].active) {
-            tpmin = min(tpmin, particles[m].t);   
+            tpmin = min(tpmin, particles[m].t());   
             anyActive = true;
           }
         }   
@@ -140,13 +150,11 @@ class ParticleExpt {
 
   void savePosition(NetcdfFileWriteable nc, int row, int m, Particle P) {
     int[] pos = {row, m};
-    float[] values = saveValues(P);
-    String[] names = saveNames();
     try {
-      for (int i=0; i<values.length; i++) {
+      for (int i=0; i<saveNames.length; i++) {
         ArrayFloat.D2 data = new ArrayFloat.D2(1,1);
-        data.set(0,0,values[i]);
-        nc.write(names[i], pos, data);  
+        data.set(0,0,(Float)P.current.get(saveNames[i]));
+        nc.write(saveNames[i], pos, data);  
       }
     } catch (IOException ioe) {
       if (debug) print("trouble saving particle " + m + " at step " + P.step + ": ");
@@ -170,13 +178,12 @@ class ParticleExpt {
   
   void saveAllPositions(int row) {
     int[] pos = {row,0};
-    String[] names = saveNames();
     try {
       NetcdfFileWriteable nc = NetcdfFileWriteable.openExisting(ncname, false);
-      for (int i=0; i<names.length; i++) {
+      for (int i=0; i<saveNames.length; i++) {
         ArrayFloat.D2 data = new ArrayFloat.D2(1,particles.length);
-        for (int j=0; j<particles.length; j++) data.set(0,j,saveValues(particles[j],i));
-        nc.write(names[i], pos, data);  
+        for (int j=0; j<particles.length; j++) data.set(0,j,(Float)particles[j].current.get(saveNames[i]));
+        nc.write(saveNames[i], pos, data);
       }
       nc.close();
     } catch (IOException ioe) {

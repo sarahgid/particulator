@@ -14,16 +14,9 @@ class ReturnMapMaker extends ParticleExpt {
     Y = new float[run.J / xySubsample];
     for (int j=0; j<Y.length; j++) Y[j] = run.lat[j*xySubsample];
     autoSave = false; // the file output gets special handling
+    saveNames = new String[] {"lon","lat","t"};
   }  
   
-  
-  String[] saveNames() {
-    return new String[] {"lon","lat","t"};
-  }
-  
-  float[] saveValues(Particle P) {
-    return new float[] {P.lon, P.lat, P.t};
-  }
   
   void makeFirstLast(float tstart, float dt, float[] cslevels, int Nreps, float internalTimestep, String filesuffix) {
     // calc particle trajectories, saving first and last positions to a normal output file
@@ -66,10 +59,11 @@ class ReturnMapMaker extends ParticleExpt {
         for (int i=0; i<X.length; i++) {
           for (int n=0; n<Nreps; n++) {
             m++;
-            if (particles[m].mask0 > small) {
+            float mask0 = (Float)particles[m].initial.get("mask");
+            if (mask0 > small) {
               mgood++;
-              xn[k*Nreps+n][mgood] = particles[m].lon;
-              yn[k*Nreps+n][mgood] = particles[m].lat;
+              xn[k*Nreps+n][mgood] = (Float)particles[m].current.get("lon");
+              yn[k*Nreps+n][mgood] = (Float)particles[m].current.get("lat");
               ind1[mgood] = i * J + j;
             }
           }

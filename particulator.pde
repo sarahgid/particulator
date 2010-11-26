@@ -1,9 +1,10 @@
-// particulator 2.6
+// particulator 2.7
 // neil banas, nov 2010
 
 /* new
-  GETMRun
-  removing backwards-in-time tracking (that may or may not be working anyway)
+  reimplementing the internal Particle storage with a HashMap;
+  can now interpolate tracers along the particle path
+  dt now inherited from ParticleExpt to Particles; just set this (and the tracers to interpolate) before calling seedParticles()
 */
 
 /* to do
@@ -38,7 +39,8 @@ void setup() {
     if (exptname.equals("riverYear")) riverYear(runDir, fileStart, fileEnd, outputDir);
     
   } else {
-    getmMap2D_set("/Users/neil/Desktop/", 1, 1);
+//    getmMap2D_set("/Users/neil/Desktop/", 1, 4);
+      pugetSoundTest();
   }
   
   if (debug) println("elapsed time " + (millis()-tic)/1000. + " sec");

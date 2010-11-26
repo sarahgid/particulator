@@ -42,19 +42,21 @@ boolean isnan(float a) {
 }
 
 
-void finitize(float[] a) {
+float[] finitize(float[] a) {
   for (int i=0; i<a.length; i++) {
     if (!isfinite(a[i])) a[i] = 0; 
   }
+  return a;
 }
-void finitize(float[][] a) {
+float[][] finitize(float[][] a) {
   for (int j=0; j<a.length; j++) {
     for (int i=0; i<a[0].length; i++) {
       if (!isfinite(a[j][i])) a[j][i] = 0; 
     }
   }
+  return a;
 }
-void finitize(float[][][] a) {
+float[][][] finitize(float[][][] a) {
   for (int k=0; k<a.length; k++) {
     for (int j=0; j<a[0].length; j++) {
       for (int i=0; i<a[0][0].length; i++) {
@@ -62,6 +64,7 @@ void finitize(float[][][] a) {
       }
     }
   }
+  return a;
 }
 
 
@@ -83,3 +86,17 @@ int findIndexBefore(float[] x, float xi) {
   }
   return nbefore;
 }
+
+
+String strrep(String S, char c0, String c1) {
+  String S1 = "";
+  for (int i=0; i<S.length(); i++) {
+    if (S.charAt(i)==c0) {
+      S1 = S1 + c1;
+    } else {
+      S1 = S1 + S.charAt(i);
+    }
+  }
+  return S1;
+}
+

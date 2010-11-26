@@ -4,166 +4,166 @@ class Particle {
 
   ParticleExpt expt;
   ROMSRun run;
+  HashMap current, initial, prev;
   boolean surfaceTrapped = false;
   boolean diffusive = true;
   boolean midpointStepping = true;
-  float lon,lat,x,y,z,cs,t,u,v,w,wdiff,dksdz,mask,H,zeta; // current position and velocity
-  int i,j,k; // current grid location (i..i+1, j..j+1, k..k+1)
-  float lon0,lat0,x0,y0,z0,cs0,u0,v0,w0,wdiff0,dksdz0,mask0,H0,zeta0; // initial  
-  float lon1,lat1,x1,y1,z1,cs1,u1,v1,w1,wdiff1,dksdz1,mask1,H1,zeta1; // previous
-  int i0,j0,k0; // initial
-  int i1,j1,k1; // previous
   int step = 0; // number of steps taken
   boolean active = true;
-  float dt = 400; // 200-400 seems about right for Puget Sound
+  float dt;
   
   Particle(float x0, float y0, float z0, float t0, ParticleExpt expt) {
-    x = x0;
-    y = y0;
-    z = z0;
-    t = t0;
     this.expt = expt;
     run = expt.run;
-    wdiff = 0;
-    dksdz = 0;
+    dt = expt.dt; // a change from previous behavior!
+    current = new HashMap();
+    current.put("x",x0);
+    current.put("y",y0);
+    current.put("z",z0);
+    current.put("t",t0);
+    current.put("wdiff",0); // if the diffusion code is never called, wdiff and dksdz will retain 0
+    current.put("dkskz",0); 
     interpEverything();
-    // save initial values
-    lon0 = lon;
-    lat0 = lat;
-    x0 = x;
-    y0 = y;
-    z0 = z;
-    cs0 = cs;
-    u0 = u;
-    v0 = v;
-    w0 = w;
-    wdiff0 = wdiff;
-    dksdz0 = dksdz;
-    i0 = i;
-    j0 = j;
-    k0 = k;
-    mask0 = mask;
-    H0 = H;
-    zeta0 = zeta;
+    initial = (HashMap)current.clone();
+    prev = (HashMap)current.clone();
   }
   
-  void interpEverything() {
-    // define velocities and other derived quantities that go with the current (x,y,z,t)
+  float x() {return (Float)current.get("x");}
+  float y() {return (Float)current.get("y");}
+  float z() {return (Float)current.get("z");}
+  float cs() {return (Float)current.get("cs");}
+  float t() {return (Float)current.get("t");}
+  float u() {return (Float)current.get("u");}
+  float v() {return (Float)current.get("v");}
+  float w() {return (Float)current.get("w");}
+  float wdiff() {return (Float)current.get("wdiff");}
+  float dksdz() {return (Float)current.get("dksdz");}
+  
+  
+  void interpEverything() { // define velocities and other derived quantities that go with the current (x,y,z,t)
+    // synchronize cs and z, make sure both are good values
     if (surfaceTrapped) {
-      cs = 0;
-      z = run.interpZeta(t, y, x);      
+      current.put("cs",0);
+      current.put("z",run.interpZeta(t(), y(), x()));
     } else {
-      cs = run.z2cs(t, z, y, x);
+      float cs = run.z2cs(t(), z(), y(), x());
       if (cs != constrain(cs, -1, 0)) {
         cs = constrain(cs, -1, 0);
-        z = run.cs2z(t, cs, y, x);
+        current.put("z",run.cs2z(t(), cs, y(), x()));
       }
+      current.put("cs",cs);
     }
-    u = run.interpU(t, cs, y, x);
-    v = run.interpV(t, cs, y, x);
-    w = run.interpW(t, cs, y, x);
-    i = findIndexBefore(run.Xu, x);
-    j = findIndexBefore(run.Yv, y);
-    k = findIndexBefore(run.Csw, cs);
-    lon = run.meters2lon(x);
-    lat = run.meters2lat(y);
-    H = run.interpH(y, x);
-    zeta = run.interpZeta(t,y,x);
-    mask = run.interpMask(t, y, x);
+    // alternate coordinates
+    current.put("i",findIndexBefore(run.Xu, x()));
+    current.put("j",findIndexBefore(run.Yv, y()));
+    current.put("j",findIndexBefore(run.Csw, cs()));
+    current.put("lon",run.meters2lon(x()));
+    current.put("lat",run.meters2lat(y()));    
+    // ancillary variables
+    current.put("H",run.interpH(y(), x()));
+    current.put("zeta",run.interpZeta(t(), y(), x()));
+    current.put("mask",run.interpMask(t(), y(), x()));
+    // velocity and diffusion
+    current.put("u",run.interpU(t(), cs(), y(), x()));
+    current.put("v",run.interpV(t(), cs(), y(), x()));
+    current.put("w",run.interpW(t(), cs(), y(), x()));
     if (diffusive) {
-      dksdz = diffusionGradient();
-      wdiff = diffusionVelocity();
+      current.put("dksdz",diffusionGradient());
+      current.put("wdiff",diffusionVelocity());
+    }
+    // additional tracers
+    for (int i=0; i<expt.tracerNames.length; i++) {
+      float cs = cs(); // by default, interpolate the tracer at the actual position of the particle
+      if (expt.tracerInterpMode[i].equals("cs")) { // interpolate the tracer at the (t,y,x) of the particle and a given cs
+        cs = expt.tracerInterpDepth[i]; 
+      } else if (expt.tracerInterpMode[i].equals("z")) { // likewise but for a given z
+        cs = run.z2cs(t(), expt.tracerInterpDepth[i], y(), x());
+      }
+      current.put(expt.tracerSaveName(i), run.interpTracer(expt.tracerNames[i], t(), cs, y(), x()));        
     }
   }
+  
   
   float diffusionGradient() {
     float dz = 1; // ****half-span to take d(Ks)/dz over****
-    float cstop = constrain(run.z2cs(t, z+dz, y, x), -1, 0);
-    float csbot = constrain(run.z2cs(t, z-dz, y, x), -1, 0);
-    float kstop = run.interpKs(t, cstop, y, x);
-    float ksbot = run.interpKs(t, csbot, y, x);
+    float cstop = constrain(run.z2cs(t(), z()+dz, y(), x()), -1, 0);
+    float csbot = constrain(run.z2cs(t(), z()-dz, y(), x()), -1, 0);
+    float kstop = run.interpKs(t(), cstop, y(), x());
+    float ksbot = run.interpKs(t(), csbot, y(), x());
+    float H = (Float)current.get("H");
+    float zeta = (Float)current.get("zeta");
     return (kstop-ksbot) / (cstop - csbot) / (zeta+H);
   }
   
+  
   float diffusionVelocity() {
     // Ks at the appropriate z
-    float cs0 = constrain(run.z2cs(t, z + 0.5*dksdz*abs(dt), y, x), -1, 0); // Batchelder et al 2000
-    float ks0 = run.interpKs(t, cs0, y, x);
+    float cs0 = constrain(run.z2cs(t(), z() + 0.5*dksdz()*abs(dt), y(), x()), -1, 0); // Batchelder et al 2000
+    float ks0 = run.interpKs(t(), cs0, y(), x());
     // diffusion velocity
     float randn1 = sqrt(-2*log(random(1)))*cos(TWO_PI*random(1)); // normally distributed random variable with std dev 1
     return sqrt(2*ks0/abs(dt)) * randn1;
   }
   
-  void storePrevious() { // everything except t
-    lon1 = lon;
-    lat1 = lat;
-    x1 = x;
-    y1 = y;
-    z1 = z;
-    cs1 = cs;
-    u1 = u;
-    v1 = v;
-    w1 = w;
-    wdiff1 = wdiff;
-    dksdz1 = dksdz;
-    i1 = i;
-    j1 = j;
-    k1 = k;
-    mask1 = mask;
-    H1 = H;
-    zeta1 = zeta;
+  
+  void storePrevious() {
+    prev = (HashMap)current.clone();
   }
   
   void restoreFromPrevious() { // everything except t
-    lon = lon1;
-    lat = lat1;
-    x = x1;
-    y = y1;
-    z = z1;
-    cs = cs1;
-    u = u1;
-    v = v1;
-    w = w1;
-    wdiff = wdiff1;
-    dksdz = dksdz1;
-    i = i1;
-    j = j1;
-    k = k1;
-    mask = mask1;
-    H = H1;
-    zeta = zeta1;
+    float tcurr = t();
+    current = (HashMap)prev.clone();
+    current.put("t",tcurr);
   }
   
+  
+  boolean inDomain() {
+    int i = (Integer)current.get("i");
+    int j = (Integer)current.get("j");
+    if (!isfinite(x()+y()+z()+u()+v()+w()+i+j)) return false;
+    if (i != constrain(i,0,run.Iu-2) || j != constrain(j,0,run.Jv-2)) return false;
+    return true;
+  }
+  
+  
   void takeStep() {
-    // make sure it's still in the domain
-    if (!isfinite(i+j+k+x+y+z+u+v+w+cs) || i!=constrain(i,0,run.Iu-2) || j!=constrain(j,0,run.Jv-2)) active = false;
-    if (!active) return;
+    if (!inDomain()) return;
+    
+    float x = x();
+    float y = y();
+    float z = z();
+    float t = t();
     
     if (!midpointStepping) { // simple Euler step
       storePrevious();
-      x += u*dt;
-      y += v*dt;
-      z += (w+wdiff+dksdz)*dt;
+      x += u()*dt;
+      y += v()*dt;
+      z += (w()+wdiff()+dksdz())*dt;
       t += dt;
     } else { // midpoint method
       storePrevious();
-      x += u*0.5*dt;
-      y += v*0.5*dt;
-      z += w*0.5*dt;
+      x += u()*0.5*dt;
+      y += v()*0.5*dt;
+      z += w()*0.5*dt;
       t += 0.5*dt;
       interpEverything(); // at the midpoint
-      float umid = u;
-      float vmid = v;
-      float wmid = w;
+      float umid = u();
+      float vmid = v();
+      float wmid = w();
       restoreFromPrevious();
       x += umid*dt; // take the full step with the velocities from the midpoint (but wdiff, dksdz as calculated at the start point)
       y += vmid*dt;
-      z += (w+wdiff+dksdz)*dt;
+      z += (w()+wdiff()+dksdz())*dt;
       t += 0.5*dt;
     }
+    
+    current.put("x",x);
+    current.put("y",y);
+    current.put("z",z);
+    current.put("t",t);
 
-    interpEverything();    
-    if (u==0 && v==0) restoreFromPrevious();    
+    interpEverything();   
+    if (u()==0 && v()==0) restoreFromPrevious();    
     step++;
   }
   

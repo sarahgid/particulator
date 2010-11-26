@@ -20,7 +20,8 @@ void getmMap2D_set(String basedir, int firstRun, int lastRun) {
 
 
 void getmMap2D(String filename, String outname, float startTimeOffset, float duration) {
-  ParticleExpt expt = new GETM_2DExpt();
+  ParticleExpt expt = new ParticleExpt();
+  expt.saveNames = new String[] {"x","y","t","H","zeta","u","v","mask"};
   expt.run = new GETM_2DRun(filename);
   expt.ncname = outname;
   float startTime = expt.run.firstTime() + startTimeOffset;
@@ -37,12 +38,4 @@ void getmMap2D(String filename, String outname, float startTimeOffset, float dur
   }
   expt.saveInterval = 9;
   expt.calcToTime(endTime);
-}
-
-
-
-class GETM_2DExpt extends ParticleExpt {
-  GETM_2DExpt() {}  
-  String[] saveNames() {return new String[] {"x","y","t","H","zeta","u","v","mask"};}  
-  float[] saveValues(Particle P) {return new float[] {P.x, P.y, P.t, P.H, P.zeta, P.u, P.v, P.mask};}
 }

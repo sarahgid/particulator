@@ -10,12 +10,12 @@ class ROMSRun {
   float meanLon, meanLat, cosMeanLat;
 
   // flow data from two frames
-  float[][][] U_n0, U_n1, V_n0, V_n1, W_n0, W_n1, Ks_n0, Ks_n1;
-  float[][] zeta_n0, zeta_n1;
-  int ncn_n0, ncn_n1;
+  HashMap frame0, frame1;
   float t_n0, t_n1;
-  float[][] mask_n0, mask_n1;
-
+  int ncn_n0, ncn_n1;
+  
+  // additional tracers to load
+  String[] tracerNames = new String[0];
 
   ROMSRun() {}
 
@@ -71,6 +71,7 @@ class ROMSRun {
     nc_close(nc);
         
     // load first two frames of velocity data
+    frame1 = new HashMap();
     loadFrame(0);
     advance();
     
@@ -88,23 +89,29 @@ class ROMSRun {
     NetcdfFile nc = nc_open(filenames[ncn]);
     ncn_n1 = ncn;
     t_n1 = fileTimes[ncn];
-    U_n1 = nc_read3D(nc, "u");
-    if (U_n1==null) U_n1 = zeros(K,Ju,Iu);
-    finitize(U_n1);
-    V_n1 = nc_read3D(nc, "v");
-    if (V_n1==null) V_n1 = zeros(K,Jv,Iv);
-    finitize(V_n1);
-    W_n1 = nc_read3D(nc, "w");
-    if (W_n1==null) W_n1 = zeros(Kw,J,I);
-    finitize(W_n1);
-    Ks_n1 = nc_read3D(nc, "AKs");
-    if (Ks_n1==null) Ks_n1 = zeros(Kw,J,I);
-    finitize(Ks_n1);
-    zeta_n1 = nc_read2D(nc, "zeta");
-    if (zeta_n1==null) zeta_n1 = zeros(J,I);
-    finitize(zeta_n1);
-    mask_n1 = nc_read2D(nc, "mask_rho"); // or wetdry_mask_rho...
-    if (mask_n1==null) mask_n1 = arrayFill(J,I,1);    
+    float[][][] data = nc_read3D(nc, "u");
+      if (data==null) data = zeros(K,Ju,Iu);
+      frame1.put("U",finitize(data));
+    data = nc_read3D(nc, "v");
+      if (data==null) data = zeros(K,Jv,Iv);
+      frame1.put("V",finitize(data));
+    data = nc_read3D(nc, "w");
+      if (data==null) data = zeros(Kw,J,I);
+      frame1.put("W",finitize(data));
+    data = nc_read3D(nc, "AKs");
+      if (data==null) data = zeros(Kw,J,I);
+      frame1.put("Ks",finitize(data));
+    float[][] data2 = nc_read2D(nc, "zeta");
+      if (data2==null) data2 = zeros(J,I);
+      frame1.put("zeta",finitize(data2));
+    data2 = nc_read2D(nc, "mask_rho");
+      if (data2==null) data2 = arrayFill(J,I,1);
+      frame1.put("mask",finitize(data2));
+    for (int i=0; i<tracerNames.length; i++) {
+      data = nc_read3D(nc, tracerNames[i]);
+      if (data==null) data = zeros(K,J,I);
+      frame1.put(tracerNames[i],finitize(data));
+    }
     nc_close(nc);
   }
   
@@ -124,72 +131,44 @@ class ROMSRun {
      
   void advance() {
     if (ncn_n1 < fileTimes.length-1) {
-      U_n0 = U_n1;
-      V_n0 = V_n1;
-      W_n0 = W_n1;
-      Ks_n0 = Ks_n1;
-      zeta_n0 = zeta_n1;
+      frame0 = (HashMap)frame1.clone();
       ncn_n0 = ncn_n1;
       t_n0 = t_n1;
-      mask_n0 = mask_n1;
       loadFrame(ncn_n1 + 1);
     } else {
       if (debug) println("last frames loaded: can't advance");
     }
   }
   
-  void advanceBackwards() {
-    if (ncn_n0 > 0) {
-      loadFrame(ncn_n0 - 1);
-      float[][][] tmp3;
-      tmp3 = U_n1; U_n1 = U_n0; U_n0 = tmp3;
-      tmp3 = V_n1; V_n1 = V_n0; V_n0 = tmp3;
-      tmp3 = W_n1; W_n1 = W_n0; W_n0 = tmp3;
-      tmp3 = Ks_n1; Ks_n1 = Ks_n0; Ks_n0 = tmp3;
-      float[][] tmp2 = zeta_n1; zeta_n1 = zeta_n0; zeta_n0 = tmp2;
-      tmp2 = mask_n1; mask_n1 = mask_n0; mask_n0 = tmp2;
-      float tmp1 = t_n1; t_n1 = t_n0; t_n0 = tmp1;
-      ncn_n1 -= 1;
-      ncn_n0 -= 1;
-    } else {
-      if (debug) println("first frames loaded: can't advance");
-    }
+  void reload() {
+    loadFrame(ncn_n0);
+    advance();
   }
+    
   
-  
-  float H(int j, int i) {
-    return H[j][i];
-  }
-  
-  float zeta(float t, int j, int i) {
-    float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * zeta_n0[j][i] + f * zeta_n1[j][i];        
-  }
-  
-  float mask(float t, int j, int i) {
-    float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * mask_n0[j][i] + f * mask_n1[j][i];        
-  }
+  float H(int j, int i) {return H[j][i];}
+  float zeta(float t, int j, int i) {return get_tji("zeta",t,j,i);}
+  float mask(float t, int j, int i) {return get_tji("mask",t,j,i);}       
 
-  float U(float t, int k, int j, int i) {
+  float U(float t, int k, int j, int i) {return get_tkji("U",t,k,j,i);}
+  float V(float t, int k, int j, int i) {return get_tkji("V",t,k,j,i);}
+  float W(float t, int k, int j, int i) {return get_tkji("W",t,k,j,i);}
+  float Ks(float t, int k, int j, int i) {return get_tkji("Ks",t,k,j,i);}
+  
+  float get_tji(String name, float t, int j, int i) {
+    float[][] data_n0 = (float[][])frame0.get(name);
+    float[][] data_n1 = (float[][])frame1.get(name);
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) *  U_n0[k][j][i] + f * U_n1[k][j][i];
+    return (1-f) * data_n0[j][i] + f * data_n1[j][i];            
   }
   
-  float V(float t, int k, int j, int i) {
+  float get_tkji(String name, float t, int k, int j, int i) {
+    float[][][] data_n0 = (float[][][])frame0.get(name);
+    float[][][] data_n1 = (float[][][])frame1.get(name);
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * V_n0[k][j][i] + f * V_n1[k][j][i];
+    return (1-f) * data_n0[k][j][i] + f * data_n1[k][j][i];            
   }
   
-  float W(float t, int k, int j, int i) {
-    float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * W_n0[k][j][i] + f * W_n1[k][j][i];    
-  }
-
-  float Ks(float t, int k, int j, int i) {
-    float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * Ks_n0[k][j][i] + f * Ks_n1[k][j][i];    
-  }  
   
   
   float interpH(float y, float x) {
@@ -252,8 +231,6 @@ class ROMSRun {
     return wi;
   }
   
- 
-
   float interpKs(float t, float cs, float y, float x) { // diffusivity
     int ii = findIndexBefore(Xu, x);
     int jj = findIndexBefore(Yv, y);
@@ -262,6 +239,20 @@ class ROMSRun {
     float f = constrain((cs - Csw[kk]) / (Csw[kk+1] - Csw[kk]), 0, 1);
     float ksi = f * Ks(t, kk+1, jj+1, ii+1) + (1-f) * Ks(t, kk, jj+1, ii+1);   
     return ksi;
+  }
+  
+  float interpTracer(String name, float t, float cs, float y, float x) { // some other tracer on the rho grid
+    int ii = findIndexBefore(X, x);
+    int jj = findIndexBefore(Y, y);
+    int kk = findIndexBefore(Cs, constrain(cs, Cs[0], Cs[K-1]));
+    if (ii<0 || jj<0 || kk<0) return 0;
+    float fx = constrain((x - X[ii]) / (X[ii+1] - X[ii]), 0, 1);
+    float fy = constrain((y - Y[jj]) / (Y[jj+1] - Y[jj]), 0, 1);
+    float c0 = fx * fy * get_tkji(name,t,kk,jj+1,ii+1)    +  (1-fx) * fy * get_tkji(name,t,kk,jj+1,ii)    +  fx * (1-fy) * get_tkji(name,t,kk,jj,ii+1)    +  (1-fx) * (1-fy) * get_tkji(name,t,kk,jj,ii);
+    float c1 = fx * fy * get_tkji(name,t,kk+1,jj+1,ii+1)  +  (1-fx) * fy * get_tkji(name,t,kk+1,jj+1,ii)  +  fx * (1-fy) * get_tkji(name,t,kk+1,jj,ii+1)  +  (1-fx) * (1-fy) * get_tkji(name,t,kk+1,jj,ii);
+    float f = constrain((cs - Cs[kk]) / (Cs[kk+1] - Cs[kk]), 0, 1);
+    float c = f * c1 + (1-f) * c0;   
+    return c;
   }
 
   
@@ -284,8 +275,7 @@ class ROMSRun {
   
   
   // in a large grid, these might be off by a lot as absolute measurements.
-  // But as long they're only used within takeStep(), only grid distortion
-  // over a single grid cell matters.
+  // but they aren't used in particle integration, only in I/O.
   
   float lon2meters(float lon) {
     return (lon - meanLon) * 111325 * cosMeanLat;

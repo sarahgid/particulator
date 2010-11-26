@@ -2,6 +2,7 @@ void pugetSoundTest() {
   ParticleExpt expt = new ParticleExpt();
   expt.linkToRun("/Users/neil/pnwtox/psmid_jul8_18/ocean_his_", 1633, 1873);
   expt.ncname = "/Users/neil/Desktop/particles_ps.nc";
+  expt.addTracer("salt");
   expt.seedParticles(new float[] {-122.5,-122.48,-122.46,-122.44,-122.42,-122.4}, new float[] {47.6, 47.65, 47.7, 47.75, 47.8}, new float[] {0}, expt.run.firstTime(), 1);
   expt.saveInterval = 1; // to save _every_ particle position to the output file
   for (int i=0; i<expt.particles.length; i++) {
