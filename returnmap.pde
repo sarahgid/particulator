@@ -4,6 +4,7 @@ class ReturnMapMaker extends ParticleExpt {
   String ncbasename;
   float[] X, Y;
   boolean surfaceTrapped = false;
+  
     
   ReturnMapMaker(String dirname, int ncn0, int ncn1, String ncbasename, int xySubsample) {
     linkToRun(dirname + "ocean_his_", ncn0, ncn1);

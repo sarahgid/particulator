@@ -1,0 +1,7 @@
+exptname = returnmaps2005
+runDir = /Volumes/vindaloo3/salish_2005_1_summer/
+fileStart = 5800
+fileEnd = 6202
+outputDir = /Volumes/vindaloo3/flowmaps075/
+outputPrefix = ecohab5deep
+cs = -0.75

@@ -52,19 +52,24 @@ void ecohab5_returnMap_daily() {
 // ------------------------------------------------------------------------------------------------------------------------
 
 
-void returnmaps2005(String runDir, int fileStart, int fileEnd, String outputDir) {
+void returnmaps2005(Configuration config) {
+  String runDir = config.getString("runDir");
+  String outputDir = config.getString("outputDir");
+  String outputPrefix = config.getString("outputPrefix");
+  int fileStart = config.getInt("fileStart");
+  int fileEnd = config.getInt("fileEnd");  
+  float cs = config.getFloat("cs");
   float lunarHour = 44712/12;
   float internalTimestep = lunarHour / 5.;
   float mapTimestep = lunarHour * 3;
-  ReturnMapMaker expt = new ReturnMapMaker(runDir, fileStart, fileEnd, outputDir+"salish2005", 2);
-  expt.surfaceTrapped = true;
-  float[] cslevels = {0};
+  ReturnMapMaker expt = new ReturnMapMaker(runDir, fileStart, fileEnd, outputDir+outputPrefix, 2);
+  expt.surfaceTrapped = (cs == 0);
   int Nreps = 1;
   float startTime = expt.run.firstTime();
   boolean includeIndices = true;
   for (int n=0; n<expt.run.lastTime()-mapTimestep; n++) {
     println("map #" + n + "---------------");
-    expt.makeMap(startTime + n*mapTimestep, mapTimestep, cslevels, Nreps, internalTimestep, ""+n, includeIndices);
+    expt.makeMap(startTime + n*mapTimestep, mapTimestep, new float[] {cs}, Nreps, internalTimestep, ""+n, includeIndices);
     includeIndices = false; // for all except the first
   }   
 }
@@ -73,7 +78,11 @@ void returnmaps2005(String runDir, int fileStart, int fileEnd, String outputDir)
 // ------------------------------------------
 
 
-void jdf2005(String runDir, int fileStart, int fileEnd, String outputDir) {
+void jdf2005(Configuration config) {
+  String runDir = config.getString("runDir");
+  String outputDir = config.getString("outputDir");
+  int fileStart = config.getInt("fileStart");
+  int fileEnd = config.getInt("fileEnd");  
   float asp = cos(48.55/180*PI);
   float[] x = new float[25];
   for (int i=-12; i<=12; i++) x[i+12] = -125.25 + (2./111.325/asp)*i; // 2 km spacing, for 50 km centered on 125.25
@@ -96,19 +105,23 @@ void jdf2005(String runDir, int fileStart, int fileEnd, String outputDir) {
 // -------------------------------------------
 
 
-void riverYear(String runDir, int fileStart, int fileEnd, String outputDir) {
+void riverYear(Configuration config) {
+  String runDir = config.getString("runDir");
+  String outputDir = config.getString("outputDir");
+  int fileStart = config.getInt("fileStart");
+  int fileEnd = config.getInt("fileEnd");  
   ParticleExpt expt = new ParticleExpt();
   expt.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
   // from ps_2006_riverFile_salish.mat (rivers.rpos)
   float[] x = {-122.2884, -122.0906, -122.2705, -122.5762, -122.4038, -122.2976, -122.6664, -122.8686, -122.3513, -123.1472, -122.9888, -122.6978, -122.9414, -123.0631, -122.3656, -122.4697, -122.4255};
   float[] y = {  48.3875,   47.9977,   48.2078,   46.2604,   47.2613,   47.5748,   47.0905,   47.0420,   48.3856,   47.3348,   47.6538,   49.1385,   47.6996,   47.5523,   47.6656,   48.7910,   48.5526};
-  float[] t = new float[365*12];
-  for (int n=0; n<t.length; n++) t[n] = 10800*n; // seconds since start of year; new particle every 2 h
+  float[] t = new float[365];
+  for (int n=0; n<t.length; n++) t[n] = 86400*n; // seconds since start of year; new particle every day
+  expt.dt = 400;
+  expt.saveInterval = 27; // 27 * 400 sec = every 3 h
   for (int r=0; r<x.length; r++) { // one particle expt/file for each river
     expt.ncname = outputDir + "river_particles_2006." + r + ".nc";
-    expt.seedParticles(new float[] {x[r]}, new float[] {y[r]}, new float[] {0}, t, 1);
-    for (int i=0; i<expt.particles.length; i++) expt.particles[i].dt = 400;
-    expt.saveInterval = 27; // 27 * 400 sec = every 3 h
+    expt.seedParticles(new float[] {x[r]}, new float[] {y[r]}, new float[] {0}, t, 4);
     expt.calcToTime(t[t.length-1]);
   }
 }
