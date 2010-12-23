@@ -109,7 +109,8 @@ class ParticleExpt {
   
   void calcToTime(float tend) {
     try {
-      NetcdfFileWriteable nc = NetcdfFileWriteable.openExisting(ncname, false);    
+      NetcdfFileWriteable nc = null;
+      if (autoSave) nc = NetcdfFileWriteable.openExisting(ncname, false);    
       tend = min(tend, run.lastTime());
       if (tend < run.firstTime()) return;
       float tpmin = Inf; // earliest current particle time
@@ -140,7 +141,7 @@ class ParticleExpt {
         println("tpmin = " + tpmin + " (" + (tpmin/86400-run.fileTimes[0]/86400) + " d)");
         run.advance();
       }
-      nc.close();
+      if (autoSave) nc.close();
       if (debug) println("done");
     } catch (IOException ioe) {
       if (debug) print("trouble saving particles: " + ioe.toString());

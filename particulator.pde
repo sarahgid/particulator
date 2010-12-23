@@ -38,14 +38,3 @@ void setup() {
   if (debug) println("elapsed time " + (millis()-tic)/1000. + " sec");
   exit();
 }
-
-
-
-String trimComment(String S) {
-  String[] ss = split(S,'!');
-  if (ss==null || ss.length==0) {
-    return null;
-  } else {
-    return trim(ss[0]);
-  }
-}

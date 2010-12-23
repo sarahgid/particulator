@@ -127,7 +127,10 @@ class Particle {
   
   
   void takeStep() {
-    if (!inDomain()) return;
+    if (!inDomain()) {
+      current.put("t",t()+dt);
+      return;
+    }
     
     float x = x();
     float y = y();
