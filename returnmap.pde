@@ -38,7 +38,7 @@ class ReturnMapMaker extends ParticleExpt {
     // calc particle trajectories, but save output in the form used by flowWeaver 0.4
     
     // calc final positions, but don't save them anywhere yet
-    if (debug) println("  calculating particles starting at " + tstart + " for " + dt);
+    if (debug) println("  calculating particles starting at " + tstart + " (" + (tstart/86400.) + " d) for " + dt);
     seedParticles(X, Y, cslevels, tstart, Nreps);
     for (int i=0; i<particles.length; i++) particles[i].dt = internalTimestep;
     if (surfaceTrapped) {
@@ -50,7 +50,6 @@ class ReturnMapMaker extends ParticleExpt {
     calcToTime(tstart+dt);
 
     // assemble xnext, ynext for the wet cells
-    if (debug) println("  rearranging the results");
     int J = Y.length, I = X.length, K = cslevels.length;
     float[][] xn = new float[K*Nreps][J*I]; // treat multiple cs levels as another kind of replicate. J*I is the max size this array might be, if there are no land cells
     float[][] yn = new float[K*Nreps][J*I];
@@ -76,7 +75,6 @@ class ReturnMapMaker extends ParticleExpt {
     int Ncells = mgood+1;
 
     // create the file
-    if (debug) println("  writing output file");
     ncname = ncbasename + "." + filesuffix + ".map.nc";
     try {
       NetcdfFileWriteable nc = NetcdfFileWriteable.createNew(ncname, false);
@@ -97,7 +95,6 @@ class ReturnMapMaker extends ParticleExpt {
       nc.create();
       
       // write coordinates and such
-      if (debug) println("    coordinates and such");
       ArrayFloat.D1 data = new ArrayFloat.D1(I);
       for (int i=0; i<I; i++) data.set(i,X[i]);
       nc.write("x", new int[] {0}, data);
@@ -113,7 +110,6 @@ class ReturnMapMaker extends ParticleExpt {
       nc.write("numCells", new int[] {0}, data); 
       
       // rescale xn,yn into short ints (cuts the file size in half) and save them
-      if (debug) println("    xnext, ynext");
       ArrayShort.D2 xnext = new ArrayShort.D2(K*Nreps, Ncells);
       ArrayShort.D2 ynext = new ArrayShort.D2(K*Nreps, Ncells);
       ArrayInt.D1 ind = new ArrayInt.D1(Ncells);

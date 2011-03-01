@@ -1,8 +1,8 @@
 class GETM_2DRun extends ROMSRun {
   
   String filename;
-  float[][] Ubar_n0, Ubar_n1, Vbar_n0, Vbar_n1;
-  float[][][] Ubar_full, Vbar_full, zeta_full, mask_full;
+  float[][] Ubar_n0, Ubar_n1, Vbar_n0, Vbar_n1, zeta_n0, zeta_n1, mask_n0, mask_n1;
+//  float[][][] Ubar_full, Vbar_full, zeta_full, mask_full;
   // modeled on the internal mechanism used until I switched to a HashMap in v2.7
   
   GETM_2DRun(String runname) {
@@ -35,6 +35,7 @@ class GETM_2DRun extends ROMSRun {
     Cs = new float[] {-1, 0}; // these shouldn't be used, but someone (like particle.interpEverything) might try to access them
     Csw = new float[] {-1, 0};
     
+    /*
     // preload all the data. The business about loading one pair of frames at a time is thus unnecessary,
     // but the structure is retained in order to make it easy to extend this to massive 3D getm runs too big to preload.
     // now, loadFrame just updates t and ncn.
@@ -57,22 +58,42 @@ class GETM_2DRun extends ROMSRun {
         }
       }
     }
+    */
     
     nc_close(nc);
     loadFrame(0);
     advance();
-    println("done");
   }
   
   void loadFrame(int ncn) {
     ncn_n1 = ncn;
     t_n1 = fileTimes[ncn];
+    NetcdfFile nc = nc_open(filename);
+    Ubar_n1 = nc_read2Dfrom3D(nc,"u",ncn);
+    Vbar_n1 = nc_read2Dfrom3D(nc,"v",ncn);
+    zeta_n1 = nc_read2Dfrom3D(nc,"elev",ncn);
+    mask_n1 = arrayFill(J, I, 1);
+    for (int j=0; j<J; j++) {
+      for (int i=0; i<I; i++) {
+        if (Ubar_n1[j][i] == -9999 || Vbar_n1[j][i] == -9999 || zeta_n1[j][i] == -9999) {
+          mask_n1[j][i] = 0;
+          Ubar_n1[j][i] = 0;
+          Vbar_n1[j][i] = 0;
+          zeta_n1[j][i] = 0;
+        }
+      }
+    }
+    nc_close(nc);
   }
   
   void advance() {
     if (ncn_n1 < fileTimes.length-1) {
       ncn_n0 = ncn_n1;
       t_n0 = t_n1;
+      Ubar_n0 = Ubar_n1;
+      Vbar_n0 = Vbar_n1;
+      zeta_n0 = zeta_n1;
+      mask_n0 = mask_n1;
       loadFrame(ncn_n1 + 1);
     } else {
       if (debug) println("last frames loaded: can't advance");
@@ -92,22 +113,26 @@ class GETM_2DRun extends ROMSRun {
 
   float zeta(float t, int j, int i) {
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * zeta_full[ncn_n0][j][i] + f * zeta_full[ncn_n1][j][i];        
+//    return (1-f) * zeta_full[ncn_n0][j][i] + f * zeta_full[ncn_n1][j][i];  
+    return (1-f) * zeta_n0[j][i] + f * zeta_n1[j][i];
   }
   
   float mask(float t, int j, int i) {
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * mask_full[ncn_n0][j][i] + f * mask_full[ncn_n1][j][i];        
+//    return (1-f) * mask_full[ncn_n0][j][i] + f * mask_full[ncn_n1][j][i];        
+    return (1-f) * mask_n0[j][i] + f * mask_n1[j][i];
   }
 
   float Ubar(float t, int j, int i) {
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) *  Ubar_full[ncn_n0][j][i] + f * Ubar_full[ncn_n1][j][i];
+//    return (1-f) *  Ubar_full[ncn_n0][j][i] + f * Ubar_full[ncn_n1][j][i];
+    return (1-f) * Ubar_n0[j][i] + f * Ubar_n1[j][i];
   }
   
   float Vbar(float t, int j, int i) {
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
-    return (1-f) * Vbar_full[ncn_n0][j][i] + f * Vbar_full[ncn_n1][j][i];
+//    return (1-f) * Vbar_full[ncn_n0][j][i] + f * Vbar_full[ncn_n1][j][i];
+    return (1-f) * Vbar_n0[j][i] + f * Vbar_n1[j][i];
   }
     
   float interpU(float t, float cs, float y, float x) {

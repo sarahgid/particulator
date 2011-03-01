@@ -60,14 +60,17 @@ void returnmaps2005(Configuration config) {
   int fileEnd = config.getInt("fileEnd");  
   float cs = config.getFloat("cs");
   float lunarHour = 44712/12;
-  float internalTimestep = lunarHour / 5.;
-  float mapTimestep = lunarHour * 3;
+  float internalTimestep = lunarHour * config.getFloat("internalTimestep_lunarHours");
+  float mapTimestep = lunarHour * config.getFloat("mapTimestep_lunarHours");
+  int numMaps = config.getInt("numMaps");
+//  float internalTimestep = lunarHour / 5.;
+//  float mapTimestep = lunarHour * 3;
   ReturnMapMaker expt = new ReturnMapMaker(runDir, fileStart, fileEnd, outputDir+outputPrefix, 2);
   expt.surfaceTrapped = (cs == 0);
   int Nreps = 1;
   float startTime = expt.run.firstTime();
   boolean includeIndices = true;
-  for (int n=0; n<expt.run.lastTime()-mapTimestep; n++) {
+  for (int n=0; n<numMaps; n++) {
     println("map #" + n + "---------------");
     expt.makeMap(startTime + n*mapTimestep, mapTimestep, new float[] {cs}, Nreps, internalTimestep, ""+n, includeIndices);
     includeIndices = false; // for all except the first

@@ -1,8 +1,8 @@
-// particulator 2.8
-// neil banas, nov 2010
+// particulator 2.8.1
+// neil banas, feb 2011
 
 /* new
-  flexible configuration files
+  getm2d loads one time slice at a time
 */
 
 /* to do

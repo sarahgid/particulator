@@ -43,7 +43,7 @@ class Particle {
   void interpEverything() { // define velocities and other derived quantities that go with the current (x,y,z,t)
     // synchronize cs and z, make sure both are good values
     if (surfaceTrapped) {
-      current.put("cs",0);
+      current.put("cs",0.0);
       current.put("z",run.interpZeta(t(), y(), x()));
     } else {
       float cs = run.z2cs(t(), z(), y(), x());

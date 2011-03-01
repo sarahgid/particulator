@@ -1,0 +1,5 @@
+exptname = getmMap2D_set
+baseDir = /Users/neil/GETM/runs/exp-2/
+firstRun = 1
+lastRun = 144
+

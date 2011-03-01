@@ -101,6 +101,32 @@ float[][] nc_read2D(NetcdfFile nc, String varname) {
 }
 
 
+float[][] nc_read2Dfrom3D(NetcdfFile nc, String varname, int k0) {
+  float[][] result = null;
+  Variable v = nc_getVar(nc, varname);
+  if (v != null) {
+    try {
+      int[] s = v.getShape();
+      int[] origin = {k0, 0, 0};
+      int[] shape = {1, s[1], s[2]};
+      Array a = v.read(origin, shape).reduce(); 
+      s = a.getShape();
+      result = new float[s[0]][s[1]];
+      Index ind = a.getIndex();
+      for (int j=0; j<s[0]; j++) {
+        for (int i=0; i<s[1]; i++) {
+          result[j][i] = a.getFloat(ind.set(j,i));
+        }
+      }
+    } catch (Exception e) {
+      println(e.toString());
+    } 
+  }
+  return result;
+}
+
+
+
 float[][][] nc_read3D(NetcdfFile nc, String varname) {
   float[][][] result = null;
   Variable v = nc_getVar(nc, varname);
