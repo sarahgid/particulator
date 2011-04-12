@@ -1,7 +1,9 @@
 class ParticleExpt {
 
   ROMSRun run;
-  Particle[] particles;
+  Particle[] particles; // a flat list of all particles: mandatory. This can be assembled however you want.
+  Particle[][][][][] particlesRNKJI; // this is an optional, more organized, alternate indexing of the particles (reps x release time x release depth x release lat x release lon).
+                                     // it's populated by seedParticles but not used anywhere in the basic Experiment class: it's useful in specialized cases like ReturnMap.
   String ncname = "myexpt.nc";
   int saveInterval = 1;
   int preallocSteps = 1;
@@ -40,27 +42,25 @@ class ParticleExpt {
     return name;
   }
 
-  void seedParticles(float[] lon0, float[] lat0, float[] cs0, float t0, int Nreps) {
-    particles = new Particle[cs0.length * lat0.length * lon0.length * Nreps];
-    int m=0;
-    for (int k=0; k<cs0.length; k++) {
-      for (int j=0; j<lat0.length; j++) {
-        for (int i=0; i<lon0.length; i++) {
-          for (int r=0; r<Nreps; r++) {
-            float y0j = run.lat2meters(lat0[j]);
-            float x0i = run.lon2meters(lon0[i]);
-            float z0 = run.cs2z(t0, cs0[k], y0j, x0i);
-            particles[m] = new Particle(x0i, y0j, z0, t0, this);
-            m++;
-          }
-        }
-      }
-    }
-    if (autoSave) createNetcdf(ncname);
-  }
-  
+  void seedParticles(float   lon0, float   lat0, float   cs0, float   t0, int Nreps) {seedParticles(new float[] {lon0}, new float[] {lat0}, new float[] {cs0}, new float[] {t0}, Nreps);}
+  void seedParticles(float   lon0, float   lat0, float   cs0, float[] t0, int Nreps) {seedParticles(new float[] {lon0}, new float[] {lat0}, new float[] {cs0}, t0, Nreps);}
+  void seedParticles(float   lon0, float   lat0, float[] cs0, float   t0, int Nreps) {seedParticles(new float[] {lon0}, new float[] {lat0}, cs0, new float[] {t0}, Nreps);}
+  void seedParticles(float   lon0, float   lat0, float[] cs0, float[] t0, int Nreps) {seedParticles(new float[] {lon0}, new float[] {lat0}, cs0, t0, Nreps);}
+  void seedParticles(float   lon0, float[] lat0, float   cs0, float   t0, int Nreps) {seedParticles(new float[] {lon0}, lat0, new float[] {cs0}, new float[] {t0}, Nreps);}
+  void seedParticles(float   lon0, float[] lat0, float   cs0, float[] t0, int Nreps) {seedParticles(new float[] {lon0}, lat0, new float[] {cs0}, t0, Nreps);}
+  void seedParticles(float   lon0, float[] lat0, float[] cs0, float   t0, int Nreps) {seedParticles(new float[] {lon0}, lat0, cs0, new float[] {t0}, Nreps);}
+  void seedParticles(float   lon0, float[] lat0, float[] cs0, float[] t0, int Nreps) {seedParticles(new float[] {lon0}, lat0, cs0, t0, Nreps);}
+  void seedParticles(float[] lon0, float   lat0, float   cs0, float   t0, int Nreps) {seedParticles(lon0, new float[] {lat0}, new float[] {cs0}, new float[] {t0}, Nreps);}
+  void seedParticles(float[] lon0, float   lat0, float   cs0, float[] t0, int Nreps) {seedParticles(lon0, new float[] {lat0}, new float[] {cs0}, t0, Nreps);}
+  void seedParticles(float[] lon0, float   lat0, float[] cs0, float   t0, int Nreps) {seedParticles(lon0, new float[] {lat0}, cs0, new float[] {t0}, Nreps);}
+  void seedParticles(float[] lon0, float   lat0, float[] cs0, float[] t0, int Nreps) {seedParticles(lon0, new float[] {lat0}, cs0, t0, Nreps);}
+  void seedParticles(float[] lon0, float[] lat0, float   cs0, float   t0, int Nreps) {seedParticles(lon0, lat0, new float[] {cs0}, new float[] {t0}, Nreps);}
+  void seedParticles(float[] lon0, float[] lat0, float   cs0, float[] t0, int Nreps) {seedParticles(lon0, lat0, new float[] {cs0}, t0, Nreps);}
+  void seedParticles(float[] lon0, float[] lat0, float[] cs0, float   t0, int Nreps) {seedParticles(lon0, lat0, cs0, new float[] {t0}, Nreps);}
+
   void seedParticles(float[] lon0, float[] lat0, float[] cs0, float[] t0, int Nreps) {
     particles = new Particle[cs0.length * lat0.length * lon0.length * t0.length * Nreps];
+    particlesRNKJI = new Particle[Nreps][t0.length][cs0.length][lat0.length][lon0.length];
     int m=0;
     for (int n=0; n<t0.length; n++) {
       for (int k=0; k<cs0.length; k++) {
@@ -71,6 +71,7 @@ class ParticleExpt {
               float x0i = run.lon2meters(lon0[i]);
               float z0 = run.cs2z(t0[n], cs0[k], y0j, x0i);
               particles[m] = new Particle(x0i, y0j, z0, t0[n], this);
+              particlesRNKJI[r][n][k][j][i] = particles[m];
               m++;
             }
           }
@@ -79,6 +80,20 @@ class ParticleExpt {
     }
     if (autoSave) createNetcdf(ncname);
   }
+  
+  
+  void surfaceTrap() {
+    trapToSigmaLevel(0);
+  }
+  
+  void trapToSigmaLevel(float cs) {
+    for (int i=0; i<particles.length; i++) particles[i].trapToSigmaLevel(cs);
+  }
+  
+  void trapToZLevel(float z) {
+    for (int i=0; i<particles.length; i++) particles[i].trapToZLevel(z);
+  }
+  
   
   void createNetcdf(String ncname) {createNetcdf(ncname,1);}
   

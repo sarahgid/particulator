@@ -5,7 +5,9 @@ class Particle {
   ParticleExpt expt;
   ROMSRun run;
   HashMap current, initial, prev;
-  boolean surfaceTrapped = false;
+  boolean surfaceTrapped = false; // retained for back-compatibility; same as sigmaTrapped with trapLevel = 0
+  boolean zTrapped = false, sigmaTrapped = false;
+  float trapLevel = 0;
   boolean diffusive = true;
   boolean midpointStepping = true;
   int step = 0; // number of steps taken
@@ -28,6 +30,20 @@ class Particle {
     prev = (HashMap)current.clone();
   }
   
+  void trapToZLevel(float z) {
+    zTrapped = true;
+    sigmaTrapped = false;
+    surfaceTrapped = false;
+    trapLevel = z;
+  }
+  
+  void trapToSigmaLevel(float cs) {
+    sigmaTrapped = true;
+    zTrapped = false;
+    trapLevel = constrain(cs, -1, 0);
+    surfaceTrapped = (cs==0);
+  }
+  
   float x() {return (Float)current.get("x");}
   float y() {return (Float)current.get("y");}
   float z() {return (Float)current.get("z");}
@@ -45,7 +61,18 @@ class Particle {
     if (surfaceTrapped) {
       current.put("cs",0.0);
       current.put("z",run.interpZeta(t(), y(), x()));
-    } else {
+    } else if (sigmaTrapped) {
+      current.put("cs",trapLevel);
+      current.put("z",run.interpZeta(t(), y(), x()));
+    } else if (zTrapped) {
+      current.put("z",trapLevel);
+      float cs = run.z2cs(t(), z(), y(), x());
+      if (cs != constrain(cs, -1, 0)) {
+        cs = constrain(cs, -1, 0);
+        current.put("z",run.cs2z(t(), cs, y(), x()));
+      }
+      current.put("cs",cs);      
+    } else { // regular 3-d motion
       float cs = run.z2cs(t(), z(), y(), x());
       if (cs != constrain(cs, -1, 0)) {
         cs = constrain(cs, -1, 0);

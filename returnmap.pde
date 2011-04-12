@@ -3,7 +3,6 @@ class ReturnMapMaker extends ParticleExpt {
   int xySubsample = 1;
   String ncbasename;
   float[] X, Y;
-  boolean surfaceTrapped = false;
   
     
   ReturnMapMaker(String dirname, int ncn0, int ncn1, String ncbasename, int xySubsample) {
@@ -31,14 +30,12 @@ class ReturnMapMaker extends ParticleExpt {
   
  
   void makeMap(float tstart, float dt, float[] cslevels, int Nreps, float internalTimestep, String filesuffix) {
-    makeMap(tstart, dt, cslevels, Nreps, internalTimestep, filesuffix, true);
-  }
-
-  void makeMap(float tstart, float dt, float[] cslevels, int Nreps, float internalTimestep, String filesuffix, boolean includeIndices) {
-    // calc particle trajectories, but save output in the form used by flowWeaver 0.4
+    // calc particle trajectories, but save output in the form used by flowWeaver 0.5
+    // (this removes the optimizations used in flowWeaver 0.4: i.e., entire grid saved, not just wet points, and values are not rescaled to short ints)
     
     // calc final positions, but don't save them anywhere yet
     if (debug) println("  calculating particles starting at " + tstart + " (" + (tstart/86400.) + " d) for " + dt);
+    float nAlt = cslevels.length * Nreps;
     seedParticles(X, Y, cslevels, tstart, Nreps);
     for (int i=0; i<particles.length; i++) particles[i].dt = internalTimestep;
     if (surfaceTrapped) {
@@ -49,30 +46,6 @@ class ReturnMapMaker extends ParticleExpt {
     }
     calcToTime(tstart+dt);
 
-    // assemble xnext, ynext for the wet cells
-    int J = Y.length, I = X.length, K = cslevels.length;
-    float[][] xn = new float[K*Nreps][J*I]; // treat multiple cs levels as another kind of replicate. J*I is the max size this array might be, if there are no land cells
-    float[][] yn = new float[K*Nreps][J*I];
-    int[] ind1 = new int[J*I];
-    float small = 1e-4; // about 10 meters
-    int m=-1, mgood=-1;
-    for (int k=0; k<cslevels.length; k++) { // the order of looping has to match the way the particles are created in seedParticles()
-      for (int j=0; j<Y.length; j++) {
-        for (int i=0; i<X.length; i++) {
-          for (int n=0; n<Nreps; n++) {
-            m++;
-            float mask0 = (Float)particles[m].initial.get("mask");
-            if (mask0 > small) {
-              mgood++;
-              xn[k*Nreps+n][mgood] = (Float)particles[m].current.get("lon");
-              yn[k*Nreps+n][mgood] = (Float)particles[m].current.get("lat");
-              ind1[mgood] = i * J + j;
-            }
-          }
-        }
-      }
-    }
-    int Ncells = mgood+1;
 
     // create the file
     ncname = ncbasename + "." + filesuffix + ".map.nc";
@@ -81,17 +54,14 @@ class ReturnMapMaker extends ParticleExpt {
       if (debug) print("writing " + nc.getLocation() + "...");
       ucar.nc2.Dimension JDim = nc.addDimension("J", J, true, false, false);
       ucar.nc2.Dimension IDim = nc.addDimension("I", I, true, false, false);
-      ucar.nc2.Dimension NrepsDim = nc.addDimension("Nreps", Nreps, true, false, false);
+      ucar.nc2.Dimension NrepsDim = nc.addDimension("nAlt", nAlt, true, false, false); // replicates and multiple depths
       ucar.nc2.Dimension oneDim = nc.addDimension("one", 1, true, false, false);
-      ucar.nc2.Dimension cellDim = nc.addDimension("cell", Ncells, true, false, false);      
       nc.addVariable("x", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {IDim});
       nc.addVariable("y", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {JDim});
-      if (includeIndices) nc.addVariable("ind", ucar.ma2.DataType.INT, new ucar.nc2.Dimension[] {cellDim});
-      nc.addVariable("xnext", ucar.ma2.DataType.SHORT, new ucar.nc2.Dimension[] {NrepsDim, cellDim});
-      nc.addVariable("ynext", ucar.ma2.DataType.SHORT, new ucar.nc2.Dimension[] {NrepsDim, cellDim});
+      nc.addVariable("xnext", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {nAltDim, JDim, IDim});
+      nc.addVariable("ynext", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {nAltDim, JDim, IDim});
       nc.addVariable("timestep", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {oneDim});
       nc.addVariable("numAlternates", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {oneDim});
-      nc.addVariable("numCells", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {oneDim});
       nc.create();
       
       // write coordinates and such
@@ -104,25 +74,28 @@ class ReturnMapMaker extends ParticleExpt {
       data = new ArrayFloat.D1(1);
       data.set(0,dt);
       nc.write("timestep", new int[] {0}, data);
-      data.set(0,K*Nreps);
+      data.set(0,nAlt);
       nc.write("numAlternates", new int[] {0}, data);
-      data.set(0,Ncells);
-      nc.write("numCells", new int[] {0}, data); 
       
-      // rescale xn,yn into short ints (cuts the file size in half) and save them
-      ArrayShort.D2 xnext = new ArrayShort.D2(K*Nreps, Ncells);
-      ArrayShort.D2 ynext = new ArrayShort.D2(K*Nreps, Ncells);
-      ArrayInt.D1 ind = new ArrayInt.D1(Ncells);
-      for (m=0; m<Ncells; m++) {
-        if (includeIndices) ind.set(m, ind1[m]);
-        for (int r=0; r<K*Nreps; r++) {
-          xnext.set(r,m,(short) round(map(constrain(xn[r][m], X[0], X[I-1]), X[0], X[I-1], -32768, 32767)));
-          ynext.set(r,m,(short) round(map(constrain(yn[r][m], Y[0], Y[J-1]), Y[0], Y[J-1], -32768, 32767)));
+     // assemble and write xnext, ynext
+      if (debug) print("xnext, ynext...");
+      ArrayFloat.D3 xnext = new ArrayFloat.D3(nAlt, J, I);
+      ArrayFloat.D3 ynext = new ArrayFloat.D3(nAlt, J, I);
+      int m=-1;
+      for (int r=0; r<Nreps; r++) {
+        for (int k=0; k<cslevels.length; k++) {
+          for (int j=0; j<Y.length; j++) {
+            for (int i=0; i<X.length; i++) {
+              m++;
+              xnext.set(k*Nreps+r,j,i,particlesRNKJI[r][0][k][j][i].lon);
+              ynext.set(k*Nreps+r,j,i,particlesRNKJI[r][0][k][j][i].lat);
+            }
+          }
         }
       }
-      if (includeIndices) nc.write("ind", new int[] {0}, ind);   
-      nc.write("xnext", new int[] {0,0}, xnext);      
-      nc.write("ynext", new int[] {0,0}, ynext);           
+      nc.write("xnext", new int[] {0,0,0}, xnext);      
+      nc.write("ynext", new int[] {0,0,0}, ynext); 
+      
       nc_close(nc);
       if (debug) println("done");
     } catch (IOException ioe) {

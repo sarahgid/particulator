@@ -1,8 +1,10 @@
-// particulator 2.8.1
-// neil banas, feb 2011
+// particulator 2.9
+// neil banas, apr 2011
 
 /* new
-  getm2d loads one time slice at a time
+  can trap particles to any z or sigma level, not just the surface
+  Experiment.seedParticles() creates a new helpful 5-d matrix called particlesRNKJI, which makes lining up Particles with their grid locations in ReturnMapMaker more robust
+  Experiment.seedParticles() can now take any combo of float and float[] arguments
 */
 
 /* to do
@@ -11,7 +13,6 @@
   do a proper convergence test in the coastal domain; Puget Sound is so chaotically dispersive that it's a hard place to look at this
   divide seedParticles into cs and z versions
   less hokey way to determine dz in dKs/dz
-  allow particles to be depth-trapped, not just surface-trapped
 */
 
 

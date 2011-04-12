@@ -20,7 +20,7 @@ void ecohab5_returnMap() {
   float lunarHour = 44712/12;
   float internalTimestep = lunarHour / 5.;
   ReturnMapMaker expt = new ReturnMapMaker("/Volumes/vindaloo3/salish_2005_1_summer/", 5800, 6202, "/Volumes/vindaloo3/ecohab5_maps/ecohab5", 2);
-  expt.surfaceTrapped = true;
+  expt.surfaceTrap();
   float[] cslevels = {0};
   int Nreps = 1;
   float startTime = expt.run.lastTime() - 14*24*lunarHour; // 14 tidal days, roughly Sep 3-17, 2005
@@ -28,22 +28,6 @@ void ecohab5_returnMap() {
   for (int n=0; n<14*24/2; n++) {
     println("map #" + n + "---------------");
     expt.makeMap(startTime + n*2*lunarHour, 2*lunarHour, cslevels, Nreps, internalTimestep, ""+n, includeIndices);
-    includeIndices = false; // for all except the first
-  }   
-}
-
-void ecohab5_returnMap_daily() {
-  float lunarHour = 44712/12;
-  float internalTimestep = lunarHour / 5.;
-  ReturnMapMaker expt = new ReturnMapMaker("/Volumes/vindaloo3/salish_2005_1_summer/", 5800, 6202, "/Volumes/vindaloo3/ecohab5_maps/ecohab5daily", 2);
-  expt.surfaceTrapped = true;
-  float[] cslevels = {0};
-  int Nreps = 1;
-  float startTime = expt.run.lastTime() - 14*24*lunarHour; // 14 tidal days, roughly Sep 3-17, 2005
-  boolean includeIndices = true;
-  for (int n=0; n<14; n++) {
-    println("map #" + n + "---------------");
-    expt.makeMap(startTime + n*24*lunarHour, 24*lunarHour, cslevels, Nreps, internalTimestep, ""+n, includeIndices);
     includeIndices = false; // for all except the first
   }   
 }
@@ -63,16 +47,13 @@ void returnmaps2005(Configuration config) {
   float internalTimestep = lunarHour * config.getFloat("internalTimestep_lunarHours");
   float mapTimestep = lunarHour * config.getFloat("mapTimestep_lunarHours");
   int numMaps = config.getInt("numMaps");
-//  float internalTimestep = lunarHour / 5.;
-//  float mapTimestep = lunarHour * 3;
   ReturnMapMaker expt = new ReturnMapMaker(runDir, fileStart, fileEnd, outputDir+outputPrefix, 2);
-  expt.surfaceTrapped = (cs == 0);
+  expt.trapToSigmaLevel(cs);
   int Nreps = 1;
   float startTime = expt.run.firstTime();
-  boolean includeIndices = true;
   for (int n=0; n<numMaps; n++) {
     println("map #" + n + "---------------");
-    expt.makeMap(startTime + n*mapTimestep, mapTimestep, new float[] {cs}, Nreps, internalTimestep, ""+n, includeIndices);
+    expt.makeMap(startTime + n*mapTimestep, mapTimestep, new float[] {cs}, Nreps, internalTimestep, ""+n);
     includeIndices = false; // for all except the first
   }   
 }
@@ -93,13 +74,11 @@ void jdf2005(Configuration config) {
   for (int i=-12; i<=12; i++) y[i+12] = 48.55 + (2./111.325)*i; // 2 km spacing, for 50 km centered on 48.55
   ParticleExpt expt = new ParticleExpt();
   expt.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
+  expt.dt = 1200;
+  expt.saveInterval = 18;
   for (int yearday = 365*5/12; yearday < 365*11/12; yearday += 2) {
     expt.ncname = outputDir + "jdf_particles_2005_v1." + yearday + ".nc";
-    expt.seedParticles(x, y, new float[] {0}, yearday*86400, 1);
-    expt.saveInterval = 18;
-    for (int i=0; i<expt.particles.length; i++) {
-      expt.particles[i].dt = 1200;
-    }
+    expt.seedParticles(x, y, 0, yearday*86400, 1);
     expt.calcToTime((yearday+30)*86400);
   }
 }
@@ -124,7 +103,7 @@ void riverYear(Configuration config) {
   expt.saveInterval = 27; // 27 * 400 sec = every 3 h
   for (int r=0; r<x.length; r++) { // one particle expt/file for each river
     expt.ncname = outputDir + "river_particles_2006." + r + ".nc";
-    expt.seedParticles(new float[] {x[r]}, new float[] {y[r]}, new float[] {0}, t, 4);
+    expt.seedParticles(x[r], y[r], 0, t, 4);
     expt.calcToTime(t[t.length-1]);
   }
 }
