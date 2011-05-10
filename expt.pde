@@ -1,7 +1,7 @@
 class ParticleExpt {
 
   ROMSRun run;
-  Particle[] particles; // a flat list of all particles: mandatory. This can be assembled however you want.
+  Particle[] particles = new particle[0]; // a flat list of all particles: mandatory. This can be assembled however you want.
   Particle[][][][][] particlesRNKJI; // this is an optional, more organized, alternate indexing of the particles (reps x release time x release depth x release lat x release lon).
                                      // it's populated by seedParticles but not used anywhere in the basic Experiment class: it's useful in specialized cases like ReturnMap.
   String ncname = "myexpt.nc";

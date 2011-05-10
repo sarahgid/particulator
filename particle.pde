@@ -54,6 +54,8 @@ class Particle {
   float w() {return (Float)current.get("w");}
   float wdiff() {return (Float)current.get("wdiff");}
   float dksdz() {return (Float)current.get("dksdz");}
+  float lon() {return (Float)current.get("lon");}
+  float lat() {return (Float)current.get("lat");}
   
   
   void interpEverything() { // define velocities and other derived quantities that go with the current (x,y,z,t)

@@ -35,26 +35,25 @@ class ReturnMapMaker extends ParticleExpt {
     
     // calc final positions, but don't save them anywhere yet
     if (debug) println("  calculating particles starting at " + tstart + " (" + (tstart/86400.) + " d) for " + dt);
-    float nAlt = cslevels.length * Nreps;
+    int nAlt = cslevels.length * Nreps;
+    dt = internalTimestep;
     seedParticles(X, Y, cslevels, tstart, Nreps);
-    for (int i=0; i<particles.length; i++) particles[i].dt = internalTimestep;
-    if (surfaceTrapped) {
-      for (int i=0; i<particles.length; i++) {
-        particles[i].surfaceTrapped = true;
-        particles[i].diffusive = false;
-      }
+    for (int i=0; i<particles.length; i++) {
+      particles[i].trapToSigmaLevel(particles[i].cs());
     }
     calcToTime(tstart+dt);
 
 
     // create the file
     ncname = ncbasename + "." + filesuffix + ".map.nc";
+    int I = X.length;
+    int J = Y.length;
     try {
       NetcdfFileWriteable nc = NetcdfFileWriteable.createNew(ncname, false);
       if (debug) print("writing " + nc.getLocation() + "...");
       ucar.nc2.Dimension JDim = nc.addDimension("J", J, true, false, false);
       ucar.nc2.Dimension IDim = nc.addDimension("I", I, true, false, false);
-      ucar.nc2.Dimension NrepsDim = nc.addDimension("nAlt", nAlt, true, false, false); // replicates and multiple depths
+      ucar.nc2.Dimension nAltDim = nc.addDimension("nAlt", nAlt, true, false, false); // replicates and multiple depths
       ucar.nc2.Dimension oneDim = nc.addDimension("one", 1, true, false, false);
       nc.addVariable("x", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {IDim});
       nc.addVariable("y", ucar.ma2.DataType.FLOAT, new ucar.nc2.Dimension[] {JDim});
@@ -87,8 +86,8 @@ class ReturnMapMaker extends ParticleExpt {
           for (int j=0; j<Y.length; j++) {
             for (int i=0; i<X.length; i++) {
               m++;
-              xnext.set(k*Nreps+r,j,i,particlesRNKJI[r][0][k][j][i].lon);
-              ynext.set(k*Nreps+r,j,i,particlesRNKJI[r][0][k][j][i].lat);
+              xnext.set(k*Nreps+r,j,i,particlesRNKJI[r][0][k][j][i].lon());
+              ynext.set(k*Nreps+r,j,i,particlesRNKJI[r][0][k][j][i].lat());
             }
           }
         }

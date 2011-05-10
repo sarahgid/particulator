@@ -27,7 +27,7 @@ void ecohab5_returnMap() {
   boolean includeIndices = true;
   for (int n=0; n<14*24/2; n++) {
     println("map #" + n + "---------------");
-    expt.makeMap(startTime + n*2*lunarHour, 2*lunarHour, cslevels, Nreps, internalTimestep, ""+n, includeIndices);
+    expt.makeMap(startTime + n*2*lunarHour, 2*lunarHour, cslevels, Nreps, internalTimestep, ""+n);
     includeIndices = false; // for all except the first
   }   
 }
@@ -54,7 +54,6 @@ void returnmaps2005(Configuration config) {
   for (int n=0; n<numMaps; n++) {
     println("map #" + n + "---------------");
     expt.makeMap(startTime + n*mapTimestep, mapTimestep, new float[] {cs}, Nreps, internalTimestep, ""+n);
-    includeIndices = false; // for all except the first
   }   
 }
 

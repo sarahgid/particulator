@@ -1,0 +1,10 @@
+exptname = returnmaps2005
+runDir = /Volumes/blackbox2/salish_2005_1/OUT/
+outputDir = /Volumes/blackbox2/flowmaps-surf-daily/
+outputPrefix = salish2005surf
+fileStart = 1
+fileEnd = 8715
+cs = 0
+internalTimestep_lunarHours = 0.2
+mapTimestep_lunarHours = 23.188
+numMaps = 365
