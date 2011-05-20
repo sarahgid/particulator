@@ -4,3 +4,4 @@ syntax: glob
 *.mat
 app*
 compiled/*
+particulator_config.txt
