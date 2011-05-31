@@ -68,6 +68,16 @@ float[][][] finitize(float[][][] a) {
 }
 
 
+float[] series(float x0, float x1, float dx) {
+  int N = floor((x1-x0)/dx);
+  float[] result = new float[N];
+  for (int i=0; i<N; i++) {
+    result[i] = x0 + i*dx;
+  }
+  return result;
+}
+
+
 
 int findIndexBefore(float[] x, float xi) {
   // assumes x is monotonic and increasing
@@ -99,4 +109,3 @@ String strrep(String S, char c0, String c1) {
   }
   return S1;
 }
-

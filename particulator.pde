@@ -27,6 +27,7 @@ void setup() {
     String exptname = config.getString("exptname");
     if (debug) config.echo();
     
+    if (exptname.equals("surfaceBox")) surfaceBox(config);
     if (exptname.equals("jdf2005")) jdf2005(config);
     if (exptname.equals("returnmaps2005")) returnmaps2005(config);
     if (exptname.equals("riverYear")) riverYear(config);

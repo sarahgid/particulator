@@ -1,7 +1,7 @@
 class ParticleExpt {
 
   ROMSRun run;
-  Particle[] particles = new particle[0]; // a flat list of all particles: mandatory. This can be assembled however you want.
+  Particle[] particles = new Particle[0]; // a flat list of all particles: mandatory. This can be assembled however you want.
   Particle[][][][][] particlesRNKJI; // this is an optional, more organized, alternate indexing of the particles (reps x release time x release depth x release lat x release lon).
                                      // it's populated by seedParticles but not used anywhere in the basic Experiment class: it's useful in specialized cases like ReturnMap.
   String ncname = "myexpt.nc";
@@ -59,6 +59,7 @@ class ParticleExpt {
   void seedParticles(float[] lon0, float[] lat0, float[] cs0, float   t0, int Nreps) {seedParticles(lon0, lat0, cs0, new float[] {t0}, Nreps);}
 
   void seedParticles(float[] lon0, float[] lat0, float[] cs0, float[] t0, int Nreps) {
+    if (debug) println("seeding " + (lon0.length*lat0.length*cs0.length*t0.length*Nreps) + " particles");
     particles = new Particle[cs0.length * lat0.length * lon0.length * t0.length * Nreps];
     particlesRNKJI = new Particle[Nreps][t0.length][cs0.length][lat0.length][lon0.length];
     int m=0;
@@ -79,6 +80,7 @@ class ParticleExpt {
       }
     }
     if (autoSave) createNetcdf(ncname);
+    if (debug) println("seedParticles: done");
   }
   
   
@@ -98,7 +100,6 @@ class ParticleExpt {
   void createNetcdf(String ncname) {createNetcdf(ncname,1);}
   
   void createNetcdf(String ncname, int preallocSteps) {
-    if (debug) print("creating output file " + ncname + "...");
     // expects particles[] to be initialized already
     try {
       NetcdfFileWriteable nc = NetcdfFileWriteable.createNew(ncname, false);
@@ -153,7 +154,7 @@ class ParticleExpt {
             anyActive = true;
           }
         }   
-        println("tpmin = " + tpmin + " (" + (tpmin/86400-run.fileTimes[0]/86400) + " d)");
+        if (debug) println("tpmin = " + tpmin + " (" + (tpmin/86400-run.fileTimes[0]/86400) + " d)");
         run.advance();
       }
       if (autoSave) nc.close();

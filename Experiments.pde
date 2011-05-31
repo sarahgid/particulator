@@ -106,3 +106,52 @@ void riverYear(Configuration config) {
     expt.calcToTime(t[t.length-1]);
   }
 }
+
+
+
+// ---------------------------------------------------------------------
+void surfaceBox(Configuration config) {
+  String runDir = config.getString("runDir");
+  String outputDir = config.getString("outputDir");
+  String outputBasename = config.getString("outputBasename");
+  int fileStart = config.getInt("fileStart");
+  int fileEnd = config.getInt("fileEnd");
+  float startTime_yearday = config.getFloat("startTime_yearday");
+  float duration_days = config.getFloat("duration_days");
+  float latMin = config.getFloat("latMin");
+  float latMax = config.getFloat("latMax");
+  float lonMin = config.getFloat("lonMin");
+  float lonMax = config.getFloat("lonMax");
+  float spacing_km = config.getFloat("spacing_km");
+  boolean doTS = config.getBoolean("doTS");
+  boolean doBio = config.getBoolean("doBio");
+  boolean do3D = config.getBoolean("do3D");
+  boolean doSurface = config.getBoolean("doSurface"); 
+  float asp = cos((latMin+latMax)/2/180*PI);
+  float[] x = series(lonMin, lonMax, spacing_km/111.325/asp);
+  float[] y = series(latMin, latMax, spacing_km/111.325);
+  ParticleExpt expt = new ParticleExpt();
+  expt.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
+  expt.dt = 1200;
+  expt.saveInterval = 18;
+  if (doTS) {
+    expt.addTracer("salt");
+    expt.addTracer("temp");
+  }
+  if (doBio) {
+    expt.addTracer("NO3");
+    expt.addTracer("phytoplankton");
+    expt.addTracer("zooplankton");
+  }
+  if (do3D) {
+    expt.ncname = outputDir + outputBasename + ".3D.nc";
+    expt.seedParticles(x, y, 0, startTime_yearday*86400, 1);
+    expt.calcToTime((startTime_yearday+duration_days)*86400);
+  }  
+  if (doSurface) {
+    expt.ncname = outputDir + outputBasename + ".surface.nc";
+    expt.seedParticles(x, y, 0, startTime_yearday*86400, 1);
+    expt.surfaceTrap();
+    expt.calcToTime((startTime_yearday+duration_days)*86400);
+  }
+}

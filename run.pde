@@ -86,6 +86,7 @@ class ROMSRun {
   float lastTime() {return fileTimes[fileTimes.length-1];}
   
   void loadFrame(int ncn) {
+    if (debug) print("loading frame " + ncn + "...");
     NetcdfFile nc = nc_open(filenames[ncn]);
     ncn_n1 = ncn;
     t_n1 = fileTimes[ncn];
@@ -113,6 +114,7 @@ class ROMSRun {
       frame1.put(tracerNames[i],finitize(data));
     }
     nc_close(nc);
+    if (debug) println("done");
   }
   
   void loadFramesAtTime(float ti) {
@@ -136,7 +138,7 @@ class ROMSRun {
       t_n0 = t_n1;
       loadFrame(ncn_n1 + 1);
     } else {
-      if (debug) println("last frames loaded: can't advance");
+      if (debug) println("last frames loaded");
     }
   }
   
