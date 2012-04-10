@@ -85,7 +85,7 @@ class Particle {
     // alternate coordinates
     current.put("i",findIndexBefore(run.Xu, x()));
     current.put("j",findIndexBefore(run.Yv, y()));
-    current.put("j",findIndexBefore(run.Csw, cs()));
+    current.put("k",findIndexBefore(run.Csw, cs()));
     current.put("lon",run.meters2lon(x()));
     current.put("lat",run.meters2lat(y()));    
     // ancillary variables
