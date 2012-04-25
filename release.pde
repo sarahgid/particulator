@@ -1,22 +1,22 @@
-class ParticleExpt {
+class ParticleRelease {
 
   ROMSRun run;
   Particle[] particles = new Particle[0]; // a flat list of all particles: mandatory. This can be assembled however you want.
   Particle[][][][][] particlesRNKJI; // this is an optional, more organized, alternate indexing of the particles (reps x release time x release depth x release lat x release lon).
-                                     // it's populated by seedParticles but not used anywhere in the basic Experiment class: it's useful in specialized cases like ReturnMap.
-  String ncname = "myexpt.nc";
+                                     // it's populated by seedParticles but not used anywhere in the basic ParticleRelease class: it's useful in specialized cases like ReturnMap.
+  String ncname = "myrelease.nc";
   int saveInterval = 1;
   int preallocSteps = 1;
   boolean saveFirstLastOnly = false;
   boolean autoSave = true; // the normal way of saving
   String[] saveNames = {"lon","lat","z","cs","t","H","mask"};
-  // the following variables are copied from the experiment in the Particle constructor
+  // the following variables are copied from the ParticleRelease in the Particle constructor
   float dt = 400;
   String[] tracerNames = new String[0];
   String[] tracerInterpMode = new String[0];
   float[] tracerInterpDepth = new float[0];
   
-  ParticleExpt() {}
+  ParticleRelease() {}
   
   void linkToRun(String basename, int ncn0, int ncn1) {
     run = new ROMSRun(basename, ncn0, ncn1);

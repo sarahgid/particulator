@@ -1,4 +1,4 @@
-class ReturnMapMaker extends ParticleExpt {
+class ReturnMapMaker extends ParticleRelease {
   
   int xySubsample = 1;
   String ncbasename;

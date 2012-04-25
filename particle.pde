@@ -2,7 +2,7 @@ class Particle {
   // To calculate trajectories by some other method, overload this class.
   // Eventually, it might be better to make this class overload a more generic Particle.
 
-  ParticleExpt expt;
+  ParticleRelease release;
   ROMSRun run;
   HashMap current, initial, prev;
   boolean surfaceTrapped = false; // retained for back-compatibility; same as sigmaTrapped with trapLevel = 0
@@ -14,10 +14,10 @@ class Particle {
   boolean active = true;
   float dt;
   
-  Particle(float x0, float y0, float z0, float t0, ParticleExpt expt) {
-    this.expt = expt;
-    run = expt.run;
-    dt = expt.dt; // a change from previous behavior!
+  Particle(float x0, float y0, float z0, float t0, ParticleRelease release) {
+    this.release = release;
+    run = release.run;
+    dt = release.dt; // a change from previous behavior!
     current = new HashMap();
     current.put("x",x0);
     current.put("y",y0);
@@ -101,14 +101,14 @@ class Particle {
       current.put("wdiff",diffusionVelocity());
     }
     // additional tracers
-    for (int i=0; i<expt.tracerNames.length; i++) {
+    for (int i=0; i<release.tracerNames.length; i++) {
       float cs = cs(); // by default, interpolate the tracer at the actual position of the particle
-      if (expt.tracerInterpMode[i].equals("cs")) { // interpolate the tracer at the (t,y,x) of the particle and a given cs
-        cs = expt.tracerInterpDepth[i]; 
-      } else if (expt.tracerInterpMode[i].equals("z")) { // likewise but for a given z
-        cs = run.z2cs(t(), expt.tracerInterpDepth[i], y(), x());
+      if (release.tracerInterpMode[i].equals("cs")) { // interpolate the tracer at the (t,y,x) of the particle and a given cs
+        cs = release.tracerInterpDepth[i]; 
+      } else if (release.tracerInterpMode[i].equals("z")) { // likewise but for a given z
+        cs = run.z2cs(t(), release.tracerInterpDepth[i], y(), x());
       }
-      current.put(expt.tracerSaveName(i), run.interpTracer(expt.tracerNames[i], t(), cs, y(), x()));        
+      current.put(release.tracerSaveName(i), run.interpTracer(release.tracerNames[i], t(), cs, y(), x()));        
     }
   }
   
