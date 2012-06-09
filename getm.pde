@@ -188,22 +188,22 @@ void getmMap2D_set(Configuration config) {
 
 
 void getmMap2D(String filename, String outname, float startTimeOffset, float duration) {
-  ParticleExpt expt = new ParticleExpt();
-  expt.saveNames = new String[] {"x","y","t","H","zeta","u","v","mask"};
-  expt.run = new GETM_2DRun(filename);
-  expt.ncname = outname;
-  float startTime = expt.run.firstTime() + startTimeOffset;
+  ParticleRelease release = new ParticleRelease();
+  release.saveNames = new String[] {"x","y","t","H","zeta","u","v","mask"};
+  release.run = new GETM_2DRun(filename);
+  release.ncname = outname;
+  float startTime = release.run.firstTime() + startTimeOffset;
   float endTime = startTime + duration;
-  float[] lon = new float[expt.run.I-2]; for (int i=0; i<lon.length; i++) lon[i] = expt.run.lon[i+1];
-  float[] lat = new float[expt.run.J-2]; for (int j=0; j<lat.length; j++) lat[j] = expt.run.lat[j+1];
-  expt.preallocSteps = round(duration / 27 / 9);
-  expt.seedParticles(lon, lat, new float[] {0}, startTime, 1);
-  for (int i=0; i<expt.particles.length; i++) {
-    expt.particles[i].dt = 207;
-    expt.particles[i].surfaceTrapped = true;
-    expt.particles[i].diffusive = false;
-    expt.particles[i].midpointStepping = false;
+  float[] lon = new float[release.run.I-2]; for (int i=0; i<lon.length; i++) lon[i] = release.run.lon[i+1];
+  float[] lat = new float[release.run.J-2]; for (int j=0; j<lat.length; j++) lat[j] = release.run.lat[j+1];
+  release.preallocSteps = round(duration / 27 / 9);
+  release.seedParticles(lon, lat, new float[] {0}, startTime, 1);
+  for (int i=0; i<release.particles.length; i++) {
+    release.particles[i].dt = 207;
+    release.particles[i].surfaceTrapped = true;
+    release.particles[i].diffusive = false;
+    release.particles[i].midpointStepping = false;
   }
-  expt.saveInterval = 9;
-  expt.calcToTime(endTime);
+  release.saveInterval = 9;
+  release.calcToTime(endTime);
 }

@@ -1,5 +1,5 @@
 // particulator 2.9.1
-// neil banas, apr 2011
+// neil banas, apr 2012
 
 /* to do
   test higher-order stepping schemes (start with AB3)

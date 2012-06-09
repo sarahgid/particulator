@@ -83,6 +83,40 @@ class ParticleRelease {
     if (debug) println("seedParticles: done");
   }
   
+  void seedParticles(String specialMode, float[] lon0, float[] lat0, float   cs0, float   t0, int Nreps) {seedParticles(specialMode, lon0, lat0, new float[] {cs0}, new float[] {t0}, Nreps);}
+  void seedParticles(String specialMode, float[] lon0, float[] lat0, float   cs0, float[] t0, int Nreps) {seedParticles(specialMode, lon0, lat0, new float[] {cs0}, t0, Nreps);}
+  void seedParticles(String specialMode, float[] lon0, float[] lat0, float[] cs0, float   t0, int Nreps) {seedParticles(specialMode, lon0, lat0, cs0, new float[] {t0}, Nreps);}
+  void seedParticles(String specialMode, float[] lon0, float[] lat0, float[] cs0, float[] t0, int Nreps) {
+    // lonLatList --------
+    if (specialMode.equals("lonLatList") || specialMode.equals("latLonList")) {
+      if (lon0.length==lat0.length) {
+        if (debug) println("seeding " + (lon0.length*cs0.length*t0.length*Nreps) + " particles");
+        particles = new Particle[cs0.length * lat0.length * t0.length * Nreps];
+        int m=0;
+        for (int n=0; n<t0.length; n++) {
+          for (int k=0; k<cs0.length; k++) {
+            for (int ji=0; ji<lat0.length; ji++) {
+              for (int r=0; r<Nreps; r++) {
+              float y0ji = run.lat2meters(lat0[ji]);
+              float x0ji = run.lon2meters(lon0[ji]);
+              float z0 = run.cs2z(t0[n], cs0[k], y0ji, x0ji);
+              particles[m] = new Particle(x0ji, y0ji, z0, t0[n], this);
+              m++;
+              }
+            }
+          }
+        }
+        if (autoSave) createNetcdf(ncname);
+        if (debug) println("seedParticles: done");   
+      } else {
+        println("error: " + specialMode + " requires that lon0 and lat0 be the same length.");
+      }   
+   // other specialModes
+   } else {
+      println("error: don't recognize" + specialMode);
+    }
+  }
+
   
   void surfaceTrap() {
     trapToSigmaLevel(0);

@@ -66,6 +66,7 @@ void jdf2005(Configuration config) {
   String outputDir = config.getString("outputDir");
   int fileStart = config.getInt("fileStart");
   int fileEnd = config.getInt("fileEnd");  
+  int Nreps = config.getInt("Nreps");
   float asp = cos(48.55/180*PI);
   float[] x = new float[25];
   for (int i=-12; i<=12; i++) x[i+12] = -125.25 + (2./111.325/asp)*i; // 2 km spacing, for 50 km centered on 125.25
@@ -77,7 +78,7 @@ void jdf2005(Configuration config) {
   release.saveInterval = 18;
   for (int yearday = 365*5/12; yearday < 365*11/12; yearday += 2) {
     release.ncname = outputDir + "jdf_particles_2005_v1." + yearday + ".nc";
-    release.seedParticles(x, y, 0, yearday*86400, 1);
+    release.seedParticles(x, y, 0, yearday*86400, Nreps);
     release.calcToTime((yearday+30)*86400);
   }
 }
@@ -86,26 +87,50 @@ void jdf2005(Configuration config) {
 // -------------------------------------------
 
 
-void riverYear(Configuration config) {
+void riverYear_may2012version(Configuration config) {
   String runDir = config.getString("runDir");
-  String outputDir = config.getString("outputDir");
+  String outputName = config.getString("outputName");
   int fileStart = config.getInt("fileStart");
-  int fileEnd = config.getInt("fileEnd");  
+  int fileEnd = config.getInt("fileEnd");
+  int Nreps = config.getInt("Nreps");
+  float releaseInterval_days = config.getFloat("releaseInterval_days");
   ParticleRelease release = new ParticleRelease();
   release.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
-  // from ps_2006_riverFile_salish.mat (rivers.rpos)
-  float[] x = {-122.2884, -122.0906, -122.2705, -122.5762, -122.4038, -122.2976, -122.6664, -122.8686, -122.3513, -123.1472, -122.9888, -122.6978, -122.9414, -123.0631, -122.3656, -122.4697, -122.4255};
-  float[] y = {  48.3875,   47.9977,   48.2078,   46.2604,   47.2613,   47.5748,   47.0905,   47.0420,   48.3856,   47.3348,   47.6538,   49.1385,   47.6996,   47.5523,   47.6656,   48.7910,   48.5526};
-  float[] t = new float[365];
-  for (int n=0; n<t.length; n++) t[n] = 86400*n; // seconds since start of year; new particle every day
+  // mouths of all rivers in salish grid except Columbia; updated may 2012
+  float[] x = {-122.4629,-122.2084,-122.3611,-122.4124,-122.3465,-122.7045,-122.8992,-122.3766,-123.1271,-122.9317,-123.1832,-122.8925,-123.0375,-122.4094,-122.5590,-122.4654};
+  float[] y = {  48.3552,  48.0172,  48.2033,  47.2615,  47.5863,  47.0994,  47.0509,  48.3026,  47.3434,  47.6456,  49.1154,  47.6906,  47.5514,  47.6733,  48.7804,  48.5627};
+  float releaseInterval_secs = 86400 * releaseInterval_days;
+  float[] t = new float[floor((release.run.lastTime() - release.run.firstTime()) / releaseInterval_secs)];
+  for (int n=0; n<t.length; n++) t[n] = release.run.firstTime() + releaseInterval_secs * n;
   release.dt = 400;
   release.saveInterval = 27; // 27 * 400 sec = every 3 h
-  for (int r=0; r<x.length; r++) { // one particle release/file for each river
-    release.ncname = outputDir + "river_particles_2006." + r + ".nc";
-    release.seedParticles(x[r], y[r], 0, t, 4);
-    release.calcToTime(t[t.length-1]);
-  }
+  release.ncname = outputName;
+  release.seedParticles("lonLatList", x, y, 0, t, Nreps);
+  release.calcToTime(release.run.lastTime());
 }
+
+void riverYear(Configuration config) {
+  String runDir = config.getString("runDir");
+  String outputName = config.getString("outputName");
+  int fileStart = config.getInt("fileStart");
+  int fileEnd = config.getInt("fileEnd");
+  int Nreps = config.getInt("Nreps");
+  float releaseInterval_days = config.getFloat("releaseInterval_days");
+  ParticleRelease release = new ParticleRelease();
+  release.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
+  // mouths of all rivers in salish grid except Columbia; updated may 2012
+  float[] x = {-122.4629,-122.2084,-122.3611,-122.4124,-122.3465,-122.7045,-122.8992,-122.3766,-123.1271,-122.9317,-123.1832,-122.8925,-123.0375,-122.4094,-122.5590,-122.4654};
+  float[] y = {  48.3552,  48.0172,  48.2033,  47.2615,  47.5863,  47.0994,  47.0509,  48.3026,  47.3434,  47.6456,  49.1154,  47.6906,  47.5514,  47.6733,  48.7804,  48.5627};
+  float releaseInterval_secs = 86400 * releaseInterval_days;
+  float[] t = new float[floor((release.run.lastTime() - release.run.firstTime()) / releaseInterval_secs)];
+  for (int n=0; n<t.length; n++) t[n] = release.run.firstTime() + releaseInterval_secs * n;
+  release.dt = 400;
+  release.saveInterval = 27; // 27 * 400 sec = every 3 h
+  release.ncname = outputName;
+  release.seedParticles("lonLatList", x, y, 0, t, Nreps);
+  release.calcToTime(release.run.lastTime() + (release.run.lastTime() - release.run.firstTime()) );
+}
+
 
 
 
