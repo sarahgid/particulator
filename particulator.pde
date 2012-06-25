@@ -1,5 +1,9 @@
-// particulator 2.9.1
-// neil banas, apr 2012
+// particulator 3.0a
+// neil banas, jun 2012
+
+/* new
+  multithreaded!
+*/
 
 /* to do
   test higher-order stepping schemes (start with AB3)

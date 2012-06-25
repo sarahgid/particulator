@@ -91,6 +91,7 @@ class ROMSRun {
     NetcdfFile nc = nc_open(filenames[ncn]);
     ncn_n1 = ncn;
     t_n1 = fileTimes[ncn];
+    frame1.clear();
     float[][][] data = nc_read3D(nc, "u");
       if (data==null) data = zeros(K,Ju,Iu);
       frame1.put("U",finitize(data));

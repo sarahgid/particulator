@@ -1,3 +1,8 @@
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.ArrayList;
+
+
 class ParticleRelease {
 
   ROMSRun run;
@@ -15,6 +20,11 @@ class ParticleRelease {
   String[] tracerNames = new String[0];
   String[] tracerInterpMode = new String[0];
   float[] tracerInterpDepth = new float[0];
+  
+  boolean multithread = false;
+  int nThreads = 6;
+  Integrator[] integrators;
+  
   
   ParticleRelease() {}
   
@@ -41,6 +51,8 @@ class ParticleRelease {
     name = strrep(name,'.',"");
     return name;
   }
+
+
 
   void seedParticles(float   lon0, float   lat0, float   cs0, float   t0, int Nreps) {seedParticles(new float[] {lon0}, new float[] {lat0}, new float[] {cs0}, new float[] {t0}, Nreps);}
   void seedParticles(float   lon0, float   lat0, float   cs0, float[] t0, int Nreps) {seedParticles(new float[] {lon0}, new float[] {lat0}, new float[] {cs0}, t0, Nreps);}
@@ -73,13 +85,13 @@ class ParticleRelease {
               float z0 = run.cs2z(t0[n], cs0[k], y0j, x0i);
               particles[m] = new Particle(x0i, y0j, z0, t0[n], this);
               particlesRNKJI[r][n][k][j][i] = particles[m];
+              particles[m].id = m;
               m++;
             }
           }
         }
       }
     }
-    if (autoSave) createNetcdf(ncname);
     if (debug) println("seedParticles: done");
   }
   
@@ -101,12 +113,12 @@ class ParticleRelease {
               float x0ji = run.lon2meters(lon0[ji]);
               float z0 = run.cs2z(t0[n], cs0[k], y0ji, x0ji);
               particles[m] = new Particle(x0ji, y0ji, z0, t0[n], this);
+              particles[m].id = m;
               m++;
               }
             }
           }
         }
-        if (autoSave) createNetcdf(ncname);
         if (debug) println("seedParticles: done");   
       } else {
         println("error: " + specialMode + " requires that lon0 and lat0 be the same length.");
@@ -116,7 +128,12 @@ class ParticleRelease {
       println("error: don't recognize" + specialMode);
     }
   }
-
+  
+/*  void seedParticlesFromHotstart(String ncname, ) {
+    NetcdfFile nc = nc_open(ncname);
+    
+  }
+*/
   
   void surfaceTrap() {
     trapToSigmaLevel(0);
@@ -129,6 +146,8 @@ class ParticleRelease {
   void trapToZLevel(float z) {
     for (int i=0; i<particles.length; i++) particles[i].trapToZLevel(z);
   }
+  
+  
   
   
   void createNetcdf(String ncname) {createNetcdf(ncname,1);}
@@ -157,45 +176,98 @@ class ParticleRelease {
   }
 
   
+  
   void calcToTime(float tend) {
-    try {
-      NetcdfFileWriteable nc = null;
-      if (autoSave) nc = NetcdfFileWriteable.openExisting(ncname, false);    
-      tend = min(tend, run.lastTime());
-      if (tend < run.firstTime()) return;
-      float tpmin = Inf; // earliest current particle time
-      for (int m=0; m<particles.length; m++) if (particles[m].active) tpmin = min(tpmin, particles[m].t());
-      if (tpmin >= tend) return;
-      if (tpmin < run.firstLoadedTime() || tpmin > run.lastLoadedTime()) {
-        run.loadFramesAtTime(tpmin);
-      } 
-      boolean anyActive = true;
-      while (anyActive && tpmin < tend) { // until the whole integration is done...
+    NetcdfFileWriteable nc = null;
+    if (autoSave) {
+      try {
+        nc = NetcdfFileWriteable.openExisting(ncname, false);
+        if (debug) println(ncname + "found, appending");
+      } catch(IOException ex) {
+        if (debug) println(ncname + "not found, creating");
+        createNetcdf(ncname);
+        try {
+          nc = NetcdfFileWriteable.openExisting(ncname, false);
+        } catch(IOException ex2) {
+          if (debug) println(ncname + "still not found");
+        }
+      }
+    }
+    if (multithread) {
+      integrators = new Integrator[nThreads];
+      for (int i=0; i<nThreads; i++) integrators[i] = new Integrator(this, nc);
+    }   
+//    try {
+    tend = min(tend, run.lastTime());
+    if (tend < run.firstTime()) return;
+    float tpmin = Inf; // earliest current particle time
+    for (int m=0; m<particles.length; m++) if (particles[m].active) tpmin = min(tpmin, particles[m].t());
+    if (tpmin >= tend) return;
+    if (tpmin < run.firstLoadedTime() || tpmin > run.lastLoadedTime()) {
+      run.loadFramesAtTime(tpmin);
+    }
+    boolean anyActive = true;
+    while (anyActive && tpmin < tend) { // until the whole integration is done...
+      if (!multithread) {
         for (int m=0; m<particles.length; m++) {
-          Particle P = particles[m];
-          while (P.t() < min(tend, run.lastLoadedTime()) && P.active) { // ...integrate each particle to the end of the loaded frame (or tend, whichever comes first)
-            P.takeStep();
-            if (autoSave && P.step % saveInterval == 0) {
-              savePosition(nc, P.step / saveInterval, m, P); // save to netcdf file, one particle at a time
+          while (particles[m].t() < min(tend, run.lastLoadedTime()) && particles[m].active) { // ...integrate each particle to the end of the loaded frame (or tend, whichever comes first)
+            particles[m].takeStep();
+            if (autoSave && particles[m].step % saveInterval == 0) {
+              savePosition(nc, particles[m].step / saveInterval, m, particles[m]); // save to netcdf file, one particle at a time
             }
           }
         }
-        // redetermine anyActive and tend, to decide whether to keep going
-        tpmin = Inf;
+      } else { 
+         // send all the particles (including the out-of-range ones) to the integrators
+        int curr = 0;
         for (int m=0; m<particles.length; m++) {
-          if (particles[m].active) {
-            tpmin = min(tpmin, particles[m].t());   
-            anyActive = true;
+          integrators[curr].add(particles[m]);
+          curr = (curr + 1) % nThreads;
+        }
+        // set them working
+        if (debug) print("    starting integration...");
+        ExecutorService pool = new Executors.newFixedThreadPool(nThreads);
+        for (int i=0; i<nThreads; i++) {
+          integrators[i].endTime = min(tend, run.lastLoadedTime());
+          pool.submit(integrators[i]);
+        }
+        if (debug) println("now...");
+        // wait for them to finish
+        pool.shutdown();
+        float tic = millis();
+        while (!pool.isTerminated) {
+          if (debug) {
+            if (millis()-tic > 1000) {
+              int c = 0;
+              for (int i=0; i<nThreads; i++) {
+                c += integrators[i].queue.size();
+              }
+              println("    " + c + " / " + particles.length);
+              tic = millis();
+            }
           }
-        }   
-        if (debug) println("tpmin = " + tpmin + " (" + (tpmin/86400-run.fileTimes[0]/86400) + " d)");
-        run.advance();
+        }
+        if (debug) println("    integration finished");
       }
-      if (autoSave) nc.close();
-      if (debug) println("done");
-    } catch (IOException ioe) {
-      if (debug) print("trouble saving particles: " + ioe.toString());
+      
+      nc.flush(); // is this necessary or helpful? not sure.
+
+      // redetermine anyActive and tend, to decide whether to keep going
+      tpmin = Inf;
+      for (int m=0; m<particles.length; m++) {
+        if (particles[m].active) {
+          tpmin = min(tpmin, particles[m].t());   
+          anyActive = true;
+        }
+      }   
+      if (debug) println("t = " + tpmin + " (" + (tpmin/86400-run.fileTimes[0]/86400) + " d)");
+      run.advance();
     }
+    if (autoSave) nc.close();
+    if (debug) println("done!");
+//    } catch (IOException ioe) {
+//      if (debug) print("trouble saving particles: " + ioe.toString());
+//    }
   }
 
 

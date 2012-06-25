@@ -9,7 +9,6 @@ void pugetSoundTest() {
     release.particles[i].dt = 900; // this is how you override the default timestep in the Particle class for a particular experiment
   }
   release.calcToTime(release.run.lastTime());  
-  
 }
 
 
@@ -109,26 +108,32 @@ void riverYear_may2012version(Configuration config) {
   release.calcToTime(release.run.lastTime());
 }
 
+
 void riverYear(Configuration config) {
   String runDir = config.getString("runDir");
-  String outputName = config.getString("outputName");
+  String outputBasename = config.getString("outputBasename");
   int fileStart = config.getInt("fileStart");
   int fileEnd = config.getInt("fileEnd");
   int Nreps = config.getInt("Nreps");
-  float releaseInterval_days = config.getFloat("releaseInterval_days");
+  float releaseInterval_hours = config.getFloat("releaseInterval_hours");
+  float releaseOffset_hours = config.getFloat("releaseOffset_hours");
   ParticleRelease release = new ParticleRelease();
+  release.multithread = true;
   release.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
+//  release.run.cyclic = true;
   // mouths of all rivers in salish grid except Columbia; updated may 2012
   float[] x = {-122.4629,-122.2084,-122.3611,-122.4124,-122.3465,-122.7045,-122.8992,-122.3766,-123.1271,-122.9317,-123.1832,-122.8925,-123.0375,-122.4094,-122.5590,-122.4654};
   float[] y = {  48.3552,  48.0172,  48.2033,  47.2615,  47.5863,  47.0994,  47.0509,  48.3026,  47.3434,  47.6456,  49.1154,  47.6906,  47.5514,  47.6733,  48.7804,  48.5627};
-  float releaseInterval_secs = 86400 * releaseInterval_days;
-  float[] t = new float[floor((release.run.lastTime() - release.run.firstTime()) / releaseInterval_secs)];
-  for (int n=0; n<t.length; n++) t[n] = release.run.firstTime() + releaseInterval_secs * n;
+  float[] t = new float[floor((release.run.lastTime() - release.run.firstTime()) / (releaseInterval_hours*3600))];
+  for (int n=0; n<t.length; n++) t[n] = release.run.firstTime() + releaseOffset_hours * 3600 + releaseInterval_hours * 3600 * n;
   release.dt = 400;
   release.saveInterval = 27; // 27 * 400 sec = every 3 h
-  release.ncname = outputName;
   release.seedParticles("lonLatList", x, y, 0, t, Nreps);
-  release.calcToTime(release.run.lastTime() + (release.run.lastTime() - release.run.firstTime()) );
+  for (int i=1; i<=365; i++) {
+    for (int j=0; j<release.particles.length; j++) release.particles[j].step = 0;
+    release.createNetcdf(outputBasename + "_day" + i + ".nc");
+    release.calcToTime(t[0] + 86400*i); // save every day in its own file
+  }
 }
 
 

@@ -4,6 +4,7 @@ class Particle {
 
   ParticleRelease release;
   ROMSRun run;
+  int id;
   HashMap current, initial, prev;
   boolean surfaceTrapped = false; // retained for back-compatibility; same as sigmaTrapped with trapLevel = 0
   boolean zTrapped = false, sigmaTrapped = false;

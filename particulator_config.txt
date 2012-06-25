@@ -1,7 +1,9 @@
 exptname = riverYear
 runDir = /Volumes/blackbox2/salish_2006_3/OUT/
-outputName = /Users/neil/Desktop/riversSalish2006.nc
+outputBasename = /Users/neil/Desktop/riversSalish2006
 fileStart = 1
-fileEnd = 8715
+fileEnd = 300
 Nreps = 1
-releaseInterval_days = 0.04166667
+releaseInterval_hours = 1
+releaseOffset_hours = 0
+
