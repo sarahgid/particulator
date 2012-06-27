@@ -24,6 +24,7 @@ class ParticleRelease {
   boolean multithread = false;
   int nThreads = 6;
   Integrator[] integrators;
+  int saveStep;
   
   
   ParticleRelease() {}
@@ -182,22 +183,22 @@ class ParticleRelease {
     if (autoSave) {
       try {
         nc = NetcdfFileWriteable.openExisting(ncname, false);
-        if (debug) println(ncname + "found, appending");
+        if (debug) println(ncname + " found, appending");
       } catch(IOException ex) {
-        if (debug) println(ncname + "not found, creating");
+        if (debug) println(ncname + " not found, creating");
         createNetcdf(ncname);
         try {
           nc = NetcdfFileWriteable.openExisting(ncname, false);
         } catch(IOException ex2) {
-          if (debug) println(ncname + "still not found");
+          if (debug) println(ncname + " still not found");
         }
       }
     }
     if (multithread) {
       integrators = new Integrator[nThreads];
       for (int i=0; i<nThreads; i++) integrators[i] = new Integrator(this, nc);
-    }   
-//    try {
+      saveStep = 0;
+    }
     tend = min(tend, run.lastTime());
     if (tend < run.firstTime()) return;
     float tpmin = Inf; // earliest current particle time
@@ -217,7 +218,7 @@ class ParticleRelease {
             }
           }
         }
-      } else { 
+      } else { // multithreaded version
          // send all the particles (including the out-of-range ones) to the integrators
         int curr = 0;
         for (int m=0; m<particles.length; m++) {
@@ -226,16 +227,16 @@ class ParticleRelease {
         }
         // set them working
         if (debug) print("    starting integration...");
-        ExecutorService pool = new Executors.newFixedThreadPool(nThreads);
+        ExecutorService pool = Executors.newFixedThreadPool(nThreads);
         for (int i=0; i<nThreads; i++) {
           integrators[i].endTime = min(tend, run.lastLoadedTime());
           pool.submit(integrators[i]);
         }
-        if (debug) println("now...");
+        if (debug) print("now...");
         // wait for them to finish
         pool.shutdown();
         float tic = millis();
-        while (!pool.isTerminated) {
+        while (!pool.isTerminated()) {
           if (debug) {
             if (millis()-tic > 1000) {
               int c = 0;
@@ -247,11 +248,23 @@ class ParticleRelease {
             }
           }
         }
-        if (debug) println("    integration finished");
+        if (debug) println("done");
+        if (autoSave) {
+          if (debug) print("    saving...");
+          saveStep++;
+          for (int m=0; m<particles.length; m++) {
+            savePosition(nc, saveStep, m, particles[m]);
+          }
+          if (debug) println("done");
+        }
       }
       
-      nc.flush(); // is this necessary or helpful? not sure.
-
+      try {
+        nc.flush(); // is this necessary or helpful? not sure.
+      } catch (IOException ex) {
+        println("nc.flush: " + ex.toString());
+      }
+      
       // redetermine anyActive and tend, to decide whether to keep going
       tpmin = Inf;
       for (int m=0; m<particles.length; m++) {
@@ -263,11 +276,12 @@ class ParticleRelease {
       if (debug) println("t = " + tpmin + " (" + (tpmin/86400-run.fileTimes[0]/86400) + " d)");
       run.advance();
     }
-    if (autoSave) nc.close();
+    try {
+      if (autoSave) nc.close();
+    } catch (IOException ex) {
+      println("nc.close: " + ex.toString());
+    }
     if (debug) println("done!");
-//    } catch (IOException ioe) {
-//      if (debug) print("trouble saving particles: " + ioe.toString());
-//    }
   }
 
 

@@ -2,7 +2,6 @@ class ROMSRun {
 
   String[] filenames;
   float[] fileTimes;
-  boolean cyclic = false;
   
   // grid
   int I,J,K, Iu,Ju, Iv,Jv, Kw;
@@ -120,7 +119,6 @@ class ROMSRun {
   }
   
   void loadFramesAtTime(float ti) {
-    ti = uncyclicize(ti);
     int ncni = findIndexBefore(fileTimes, ti);
     if (ncni == -1) {
       if (debug) println("time " + ti + " is out of range");
@@ -160,7 +158,6 @@ class ROMSRun {
   float Ks(float t, int k, int j, int i) {return get_tkji("Ks",t,k,j,i);}
   
   float get_tji(String name, float t, int j, int i) {
-    t = uncyclicize(t);
     float[][] data_n0 = (float[][])frame0.get(name);
     float[][] data_n1 = (float[][])frame1.get(name);
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
@@ -168,19 +165,10 @@ class ROMSRun {
   }
   
   float get_tkji(String name, float t, int k, int j, int i) {
-    t = uncyclicize(t);
     float[][][] data_n0 = (float[][][])frame0.get(name);
     float[][][] data_n1 = (float[][][])frame1.get(name);
     float f = constrain((t - t_n0) / (t_n1 - t_n0), 0, 1);
     return (1-f) * data_n0[k][j][i] + f * data_n1[k][j][i];            
-  }
-  
-  float uncyclicize(float t) {
-    if (cyclic) {
-      return firstTime() + ((t - firstTime()) % (lastTime() - firstTime()));
-    } else {
-      return t;
-    }
   }  
   
  

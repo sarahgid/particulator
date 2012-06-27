@@ -3,6 +3,9 @@
 
 /* new
   multithreaded!
+  note that since the old autoSave method is apparently incompatible with multithreading, when multithreading is on,
+  autoSave simply saves once per _frame of input data_, not particle timestep * saveInterval. The options for this
+  need to be rethought.
 */
 
 /* to do

@@ -1,12 +1,12 @@
 class Integrator implements Runnable {
 
   ArrayList queue = new ArrayList();
-  ParticleRelease parent;
+  ParticleRelease release;
   NetcdfFileWriteable nc;
   float endTime = 0;
   
-  Integrator(ParticleRelease parent, NetcdfFileWriteable nc) {
-    this.parent = parent;
+  Integrator(ParticleRelease release, NetcdfFileWriteable nc) {
+    this.release = release;
     this.nc = nc;
   }
   
@@ -25,9 +25,11 @@ class Integrator implements Runnable {
   void calcOne(Particle P) {
     while (P.active && P.t() < endTime) { // ...integrate each particle to the end of the loaded frame (or tend, whichever comes first)
       P.takeStep();
-      if (parent.autoSave && P.step % parent.saveInterval == 0) {
-        parent.savePosition(nc, P.step / parent.saveInterval, P.id, P); // save to netcdf file
+      /* autoSave doesn't work with multithreading, but if it did:
+      if (release.autoSave && P.step % release.saveInterval == 0) {
+        release.savePosition(nc, P.step / release.saveInterval, P.id, P); // save to netcdf file
       }
+      */
     }
   }
 

@@ -1,4 +1,5 @@
 class ReturnMapMaker extends ParticleRelease {
+  // warning: there have been many changes, including, multithreading, to ParticleRelease since this was last updated
   
   int xySubsample = 1;
   String ncbasename;

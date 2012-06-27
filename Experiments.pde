@@ -120,7 +120,6 @@ void riverYear(Configuration config) {
   ParticleRelease release = new ParticleRelease();
   release.multithread = true;
   release.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
-//  release.run.cyclic = true;
   // mouths of all rivers in salish grid except Columbia; updated may 2012
   float[] x = {-122.4629,-122.2084,-122.3611,-122.4124,-122.3465,-122.7045,-122.8992,-122.3766,-123.1271,-122.9317,-123.1832,-122.8925,-123.0375,-122.4094,-122.5590,-122.4654};
   float[] y = {  48.3552,  48.0172,  48.2033,  47.2615,  47.5863,  47.0994,  47.0509,  48.3026,  47.3434,  47.6456,  49.1154,  47.6906,  47.5514,  47.6733,  48.7804,  48.5627};
@@ -131,7 +130,7 @@ void riverYear(Configuration config) {
   release.seedParticles("lonLatList", x, y, 0, t, Nreps);
   for (int i=1; i<=365; i++) {
     for (int j=0; j<release.particles.length; j++) release.particles[j].step = 0;
-    release.createNetcdf(outputBasename + "_day" + i + ".nc");
+    release.ncname = outputBasename + "_day" + i + ".nc";
     release.calcToTime(t[0] + 86400*i); // save every day in its own file
   }
 }
