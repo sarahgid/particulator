@@ -1,6 +1,5 @@
 class Particle {
   // To calculate trajectories by some other method, overload this class.
-  // Eventually, it might be better to make this class overload a more generic Particle.
 
   ParticleRelease release;
   ROMSRun run;
@@ -18,7 +17,7 @@ class Particle {
   Particle(float x0, float y0, float z0, float t0, ParticleRelease release) {
     this.release = release;
     run = release.run;
-    dt = release.dt; // a change from previous behavior!
+    dt = release.dt; // a change from previous behavior! set this in the Release, not the Particle
     current = new HashMap();
     current.put("x",x0);
     current.put("y",y0);
@@ -45,6 +44,8 @@ class Particle {
     surfaceTrapped = (cs==0);
   }
   
+  // the reason for this HashMap business is to make this code as agnostic as possible about what variables are saved at each timestep,
+  // beyond the ones necessary for timestepping. This set of functions is just for convenience.
   float x() {return (Float)current.get("x");}
   float y() {return (Float)current.get("y");}
   float z() {return (Float)current.get("z");}
@@ -115,7 +116,7 @@ class Particle {
   
   
   float diffusionGradient() {
-    float dz = 1; // ****half-span to take d(Ks)/dz over****
+    float dz = 1; // ****half-span to take d(Ks)/dz over: hokey! ****
     float cstop = constrain(run.z2cs(t(), z()+dz, y(), x()), -1, 0);
     float csbot = constrain(run.z2cs(t(), z()-dz, y(), x()), -1, 0);
     float kstop = run.interpKs(t(), cstop, y(), x());

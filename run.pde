@@ -109,11 +109,12 @@ class ROMSRun {
     data2 = nc_read2D(nc, "mask_rho");
       if (data2==null) data2 = arrayFill(J,I,1);
       frame1.put("mask",finitize(data2));
-    for (int i=0; i<tracerNames.length; i++) {
+    for (int i=0; i<tracerNames.length; i++) { // mechanism for loading other fields on the rho grid
       data = nc_read3D(nc, tracerNames[i]);
       if (data==null) data = zeros(K,J,I);
       frame1.put(tracerNames[i],finitize(data));
     }
+    // to load other 2d fields or fields on the U,V,W grids, add code here...
     nc_close(nc);
     if (debug) println("done");
   }
@@ -147,6 +148,13 @@ class ROMSRun {
     loadFrame(ncn_n0);
     advance();
   }
+  
+  
+  // interpolation ----------------------
+  // get_tkji, get_tji, and the shortcuts like zeta(), U(), V(), etc all interpolate in _time_ but do the rest on the model grid.
+  // interpZeta(), interpU(), interpV(), etc interpolate in _space_ as well.
+  // note that U is interpolated only in x, V only in y, W only in z. This is actually more appropriate to mass conservation than
+  // something more complicated, because it is closest to replicating how ROMS itself handles the continuity equation.
   
   float H(int j, int i) {return H[j][i];}
   float zeta(float t, int j, int i) {return get_tji("zeta",t,j,i);}

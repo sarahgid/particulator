@@ -1,9 +1,9 @@
-exptname = riverYear
-runDir = /Volumes/blackbox2/salish_2006_3/OUT/
-outputBasename = /Users/neil/Desktop/particle_output/riversSalish2006
+exptname = qmhYear
+runDir = /Volumes/vindaloo2/salish_2006_3/OUT/
+outputBasename = /Users/neil/Desktop/qmhYear_particles/
 fileStart = 1
 fileEnd = 8715
 Nreps = 1
-releaseInterval_hours = 1
+releaseInterval_hours = 8
 releaseOffset_hours = 0
 

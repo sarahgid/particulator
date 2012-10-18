@@ -1,9 +1,12 @@
 class GETM_2DRun extends ROMSRun {
   
+  // a somewhat outdated method for reading 2D GETM runs.
+  // modeled on the internal mechanism used until I switched to a HashMap in v2.7.
+  // an even older approach--in which the whole run was read in at once--is still in here but commented out.
+  
   String filename;
   float[][] Ubar_n0, Ubar_n1, Vbar_n0, Vbar_n1, zeta_n0, zeta_n1, mask_n0, mask_n1;
-//  float[][][] Ubar_full, Vbar_full, zeta_full, mask_full;
-  // modeled on the internal mechanism used until I switched to a HashMap in v2.7
+  //  float[][][] Ubar_full, Vbar_full, zeta_full, mask_full;
   
   GETM_2DRun(String runname) {
     print("loading " + runname + "...");

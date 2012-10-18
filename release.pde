@@ -7,15 +7,17 @@ class ParticleRelease {
 
   ROMSRun run;
   Particle[] particles = new Particle[0]; // a flat list of all particles: mandatory. This can be assembled however you want.
-  Particle[][][][][] particlesRNKJI; // this is an optional, more organized, alternate indexing of the particles (reps x release time x release depth x release lat x release lon).
-                                     // it's populated by seedParticles but not used anywhere in the basic ParticleRelease class: it's useful in specialized cases like ReturnMap.
-  String ncname = "myrelease.nc";
+  Particle[][][][][] particlesRNKJI; // this is an optional, more organized, alternate indexing of the particles
+                                     // (reps x release time x release depth x release lat x release lon).
+                                     // it's populated by some versions of seedParticles but not used anywhere in the
+                                     // basic ParticleRelease class: it's useful in specialized cases like ReturnMap.
+  String ncname = "myrelease.nc"; // this and the other default values below are just placeholders. Don't set them here: that's what ParticleRelease is for.
   int saveInterval = 1;
   int preallocSteps = 1;
   boolean saveFirstLastOnly = false;
-  boolean autoSave = true; // the normal way of saving
+  boolean autoSave = true; // the normal way of saving, when multithreading is off. Ignore this flag until the multithreaded saving options are rethought!
   String[] saveNames = {"lon","lat","z","cs","t","H","mask"};
-  // the following variables are copied from the ParticleRelease in the Particle constructor
+  // the following variables are copied from the ParticleRelease into each Particle in the Particle constructor
   float dt = 400;
   String[] tracerNames = new String[0];
   String[] tracerInterpMode = new String[0];
@@ -42,7 +44,7 @@ class ParticleRelease {
     boolean found = false;
     for (int i=0; i<saveNames.length && !found; i++) found = saveNames[i].equals(tracerSaveName(ii));
     if (!found) saveNames = (String[]) append(saveNames, tracerSaveName(ii));
-    run.tracerNames = tracerNames;
+    run.tracerNames = tracerNames; // tell the ROMSRun object that it needs to load more fields when it reads a new ROMS file
     run.reload();
   }
   
@@ -124,15 +126,14 @@ class ParticleRelease {
       } else {
         println("error: " + specialMode + " requires that lon0 and lat0 be the same length.");
       }   
-   // other specialModes
+   // other specialModes would go here
    } else {
       println("error: don't recognize" + specialMode);
     }
   }
   
-/*  void seedParticlesFromHotstart(String ncname, ) {
+/*  void seedParticlesFromHotstart(String ncname, ...) {
     NetcdfFile nc = nc_open(ncname);
-    
   }
 */
   
@@ -252,9 +253,7 @@ class ParticleRelease {
         if (autoSave) {
           if (debug) print("    saving...");
           saveStep++;
-          for (int m=0; m<particles.length; m++) {
-            savePosition(nc, saveStep, m, particles[m]);
-          }
+          saveAllPositions(nc, saveStep);
           if (debug) println("done");
         }
       }
@@ -317,12 +316,22 @@ class ParticleRelease {
     int[] pos = {row,0};
     try {
       NetcdfFileWriteable nc = NetcdfFileWriteable.openExisting(ncname, false);
+      saveAllPositions(nc, row);
+      nc.close();
+    } catch (IOException ioe) {
+      if (debug) print("trouble saving particles at row " + row + ": ");
+      println(ioe.toString());
+    }
+  }
+  
+  void saveAllPositions(NetcdfFileWriteable nc, int row) {
+    int[] pos = {row,0};
+    try {
       for (int i=0; i<saveNames.length; i++) {
         ArrayFloat.D2 data = new ArrayFloat.D2(1,particles.length);
         for (int j=0; j<particles.length; j++) data.set(0,j,(Float)particles[j].current.get(saveNames[i]));
         nc.write(saveNames[i], pos, data);
       }
-      nc.close();
     } catch (IOException ioe) {
       if (debug) print("trouble saving particles at row " + row + ": ");
       println(ioe.toString());  
@@ -331,5 +340,6 @@ class ParticleRelease {
       println(ire.toString());        
     }
   }
+
   
 }

@@ -1,5 +1,7 @@
 class ReturnMapMaker extends ParticleRelease {
-  // warning: there have been many changes, including, multithreading, to ParticleRelease since this was last updated
+  // special kind of Release that generates the inputs for flowWeaver.
+  // warning: there have been many changes, including, multithreading, to ParticleRelease since this was last updated.
+  // probably doesn't actually work at the moment.
   
   int xySubsample = 1;
   String ncbasename;
