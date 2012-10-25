@@ -1,5 +1,5 @@
 exptname = riverYear
-runDir = /Volumes/vindaloo3/salish_2005_1/OUT/
+runDir = /Volumes/vindaloo2/salish_2006_3/OUT/
 outputBasename = /Users/neil/Desktop/riverYear05_particles/
 fileStart = 1
 fileEnd = 8715

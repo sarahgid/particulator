@@ -33,6 +33,7 @@ void setup() {
     
     if (exptname.equals("surfaceBox")) surfaceBox(config);
     if (exptname.equals("riverYear")) riverYear(config);
+    if (exptname.equals("riverYearHotstart")) riverYearHotstart(config);
     if (exptname.equals("cystYear")) cystYear(config);
     if (exptname.equals("qmhYear")) qmhYear(config);
     // etc etc etc

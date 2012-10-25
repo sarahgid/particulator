@@ -135,6 +135,30 @@ void riverYear(Configuration config) {
   }
 }
 
+void riverYearHotstart(Configuration config) {
+  String runDir = config.getString("runDir");
+  String outputBasename = config.getString("outputBasename");
+  int fileStart = config.getInt("fileStart");
+  int fileEnd = config.getInt("fileEnd");
+  int Nreps = config.getInt("Nreps");
+  float releaseInterval_hours = config.getFloat("releaseInterval_hours");
+  float releaseOffset_hours = config.getFloat("releaseOffset_hours");
+  String lonLatFilename = config.getString("lonLatFilename");
+  ParticleRelease release = new ParticleRelease();
+  release.multithread = true;
+  release.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
+  float t = release.run.firstTime();
+  release.dt = 400;
+  release.seedParticles("lonLatList", lonLatFilename, 0, t, Nreps);
+  for (int i=1; i<=365; i++) {
+    for (int j=0; j<release.particles.length; j++) release.particles[j].step = 0;
+    release.ncname = outputBasename + "_day" + i + ".nc";
+    release.calcToTime(t[0] + 86400*i); // save every day in its own file
+  }
+}
+
+
+
 
 void cystYear(Configuration config) {
   String runDir = config.getString("runDir");
@@ -174,7 +198,7 @@ void qmhYear(Configuration config) {
   ParticleRelease release = new ParticleRelease();
   release.multithread = true;
   release.linkToRun(runDir+"ocean_his_",fileStart,fileEnd);
-  String[] s = loadStrings("qmh.txt"); // this is how to read x and y from an external file...
+  String[] s = loadStrings("inputs/qmh.txt"); // this is how to read x and y from an external file...
   float[] x = new float[s.length];
   float[] y = new float[s.length];
   for (int i=0; i<s.length; i++) {

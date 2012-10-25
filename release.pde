@@ -132,10 +132,27 @@ class ParticleRelease {
     }
   }
   
-/*  void seedParticlesFromHotstart(String ncname, ...) {
-    NetcdfFile nc = nc_open(ncname);
+  
+  void seedParticles(String specialMode, String filename, float   cs0, float   t0, int Nreps) {seedParticles(specialMode, filename, new float[] {cs0}, new float[] {t0}, Nreps);}
+  void seedParticles(String specialMode, String filename, float   cs0, float[] t0, int Nreps) {seedParticles(specialMode, filename, new float[] {cs0}, t0, Nreps);}
+  void seedParticles(String specialMode, String filename, float[] cs0, float   t0, int Nreps) {seedParticles(specialMode, filename, cs0, new float[] {t0}, Nreps);}
+  void seedParticles(String specialMode, String filename, float[] cs0, float[] t0, int Nreps) {
+    if (specialMode.equals("lonLatList") || specialMode.equals("latLonList")) {
+      String[] s = loadStrings(filename); // this is how to read x and y from an external file...
+      float[] x = new float[s.length];
+      float[] y = new float[s.length];
+      for (int i=0; i<s.length; i++) {
+        float[] xy = float(splitTokens(s[i]));
+        x[i] = xy[0];
+        y[i] = xy[1];
+      }
+      seedParticles(specialMode, x, y, cs0, t0, Nreps);
+    } else {
+      println("error: don't recognize" + specialMode);
+    }
   }
-*/
+
+  
   
   void surfaceTrap() {
     trapToSigmaLevel(0);

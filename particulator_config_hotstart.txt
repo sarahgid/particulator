@@ -1,0 +1,10 @@
+exptname = riverYearHotstart
+runDir = /Volumes/vindaloo2/salish_2006_3/OUT/
+outputBasename = /Users/neil/Desktop/riverYear06repeat_particles/
+lonLatFilename = inputs/finalparticles2006.txt
+fileStart = 1
+fileEnd = 8715
+Nreps = 1
+releaseInterval_hours = 1
+releaseOffset_hours = 0
+
