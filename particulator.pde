@@ -1,5 +1,5 @@
-// particulator 3.0a
-// neil banas, jun 2012
+// particulator 3.1
+// neil banas, jun 2013
 
 /* new in this version
   multithreaded!
@@ -11,7 +11,6 @@
 /* to do
   - save a simple flag that indicates which steps in the output file should be ignored (for example, particles that haven't started yet and thus are frozen at their start position)
   - flexible endTime vector that goes along with startTime
-  - Particle.seedParticlesFromHotstart()
   - replacement for saveInterval that works with multithreading
   - Release.createNetcdf() for a subset of particles (pass the indices to createNetcdf(), or else 'all', which would also serve as a reminder that particles[] has to exist before this is called)
   - test higher-order stepping schemes (start with AB3)
@@ -34,6 +33,7 @@ void setup() {
     if (exptname.equals("surfaceBox")) surfaceBox(config);
     if (exptname.equals("riverYear")) riverYear(config);
     if (exptname.equals("riverYearHotstart")) riverYearHotstart(config);
+    if (exptname.equals("riverYearLooped")) riverYearLooped(config);
     if (exptname.equals("cystYear")) cystYear(config);
     if (exptname.equals("qmhYear")) qmhYear(config);
     // etc etc etc

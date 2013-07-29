@@ -1,9 +1,8 @@
-exptname = riverYear
-runDir = /Volumes/vindaloo3/salish_2005_1/OUT/
-outputBasename = /Users/neil/Desktop/riverYear05_particles/
-fileStart = 1
+exptname = riverYearLooped
+runDir = /Volumes/vindaloo3/salish_2006_4/OUT/
+outputBasename = /Users/neil/Desktop/riverParticles_jun2013/riverYear
+fileStart = 25
 fileEnd = 8715
 Nreps = 1
 releaseInterval_hours = 1
 releaseOffset_hours = 0
-

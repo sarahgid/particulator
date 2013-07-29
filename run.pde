@@ -100,7 +100,7 @@ class ROMSRun {
     data = nc_read3D(nc, "w");
       if (data==null) data = zeros(Kw,J,I);
       frame1.put("W",finitize(data));
-    data = nc_read3D(nc, "AKs");
+    data = nc_read3D(nc, "AKs"); // note: no warning if this (or any other) variable is missing!
       if (data==null) data = zeros(Kw,J,I);
       frame1.put("Ks",finitize(data));
     float[][] data2 = nc_read2D(nc, "zeta");
